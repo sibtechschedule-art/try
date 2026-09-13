@@ -116,62 +116,62 @@ Requirements:
   const sceneOutlineTemplates = [
     {
       title: "Scene 1: Morning Sunrise in the Wonderful World",
-      narrative: `Welcome back, little explorers! Today in ${seriesTitle}, Episode ${episodeNumber}, a wonderful new day begins in ${settingName}. The sun rises gently over the horizon, casting a golden sparkle over everything. Our friend ${heroName} wakes up full of energy and excitement, ready for a brand new adventure.`,
+      narrative: `Narrator: Welcome back, little explorers! Today in ${seriesTitle}, Episode ${episodeNumber}, a bright new morning begins in ${settingName}.\nLeo: Good morning, world! Look at that bright sunny sky, Mia!\nMia: Good morning, Leo! I can feel that today is going to be an extra special adventure!`,
       visual: `Bright sunny morning in ${settingName}, vibrant colorful ${artStyle} style, high quality children book illustration.`
     },
     {
       title: "Scene 2: A Mysterious Discovery",
-      narrative: `While walking near the center of ${settingName}, ${heroName} notices something truly special lying near a bed of glowing wildflowers. It is a shimmering map with magical golden letters! "Look at this!" exclaims ${heroName}. "It shows the secret path to the Golden Star of Kindness!"`,
+      narrative: `Narrator: While exploring near the sparkling wildflowers, something glows on the grass.\nLeo: Mia, look! Over by those rainbow flowers! Something is shining!\nMia: Wow! It is a shimmering golden map with star symbols!\nLeo: It says: The Secret Path to the Golden Star of Kindness! Let us follow it!`,
       visual: `${heroName} discovering a glowing golden map in a lush magical forest, ${artStyle} art style, charming and colorful.`
     },
     {
       title: "Scene 3: Preparing for the Big Journey",
-      narrative: `Before starting the journey, our brave little friends know that preparation and teamwork are essential. They pack their friendly explorer backpacks with fresh water, healthy fruit snacks, a magnifying glass, and a notebook for drawing discoveries. Remember explorers: being prepared helps every adventure go smoothly!`,
+      narrative: `Narrator: Before starting their journey, our brave friends pack everything they need.\nMia: Backpack ready! Water bottle, apples, and our trusty magnifying glass!\nLeo: Teamwork makes the dream work! When we prepare together, we can overcome any challenge!`,
       visual: `${heroName} packing a colorful backpack with fruits and tools, happy expression, 3d animated ${artStyle} style.`
     },
     {
       title: "Scene 4: Crossing the Whispering River",
-      narrative: `The map leads to the edge of the Whispering River. The water sparkles like diamonds, but the bridge looks a bit wobbly. ${heroName} stops and thinks carefully. "Instead of rushing, let us check each stepping stone together step by step," says ${heroName}. Together, they cross safely with patience!`,
+      narrative: `Narrator: They arrive at the Whispering River. The water sparkles, but the wooden stepping stones look tricky.\nLeo: Uh oh! The river is wide! How do we cross safely, Mia?\nMia: Don't worry, Leo! We will take it one careful step at a time and hold hands!\nLeo: Great idea! Step one, step two... We made it across!`,
       visual: `${heroName} carefully crossing a sparkling river on colorful stepping stones, friendly animal friends cheering, ${artStyle} style.`
     },
     {
       title: "Scene 5: The Lost Little Woodland Friend",
-      narrative: `On the other side of the river, they hear a gentle soft sound behind a bush. Oh look! A tiny baby squirrel named Pip is sitting near a tall oak tree, looking puzzled. "I cannot find my way back to the acorn tree," says Pip softly. ${heroName} smiles warmly and offers a helping hand.`,
+      narrative: `Narrator: On the other side of the river, they hear a gentle rustling sound.\nPip Squirrel: (sniffing) Oh dear... I was gathering acorns, and now I lost my way home.\nLeo: Hello little friend! I am Leo, and this is Mia! Don't cry, we are here to help you!\nMia: What is your name, tiny friend?\nPip Squirrel: I am Pip! My family lives near the Big Oak Tree.`,
       visual: `Cute small baby squirrel sitting under a giant ancient tree talking to ${heroName}, wholesome scene, ${artStyle}.`
     },
     {
       title: "Scene 6: Working Together to Share Kindness",
-      narrative: `${heroName} checks the map and realizes that helping Pip is even more important than finding the treasure first. "When a friend needs help, kindness always comes first!" says ${heroName}. They hold hands and guide Pip through the cheerful berry path back to his family.`,
+      narrative: `Narrator: Leo and Mia check the map. Helping Pip means taking a slight detour, but kindness comes first!\nLeo: The map can wait! Helping a friend in need is the most important mission!\nMia: You are so right, Leo! Come with us Pip, hold our hands!\nPip Squirrel: Thank you so much, Leo and Mia! You are true friends!`,
       visual: `Group of cute animated characters walking together happily on a flower-filled path, cozy atmosphere, ${artStyle}.`
     },
     {
       title: "Scene 7: The Reunion & Joyful Celebration",
-      narrative: `Mama and Papa Squirrel run over with big warm hugs! "Thank you so much for bringing little Pip home safely!" they cheer. They share delicious sweet berries as a thank-you treat. Helping others creates happy hearts for everyone involved!`,
+      narrative: `Narrator: Soon, they reach the big oak tree where Pip's family is waiting.\nMama Squirrel: Pip! Oh my sweet baby, you are safe!\nPip Squirrel: Mama! Leo and Mia helped me find the way home!\nWise Owl: Hoothoot! Helping others is the sweetest gift of all! Have some delicious berries, young heroes!`,
       visual: `Squirrel family reunion with warm hugs and delicious berries picnic, colorful festive lighting, ${artStyle}.`
     },
     {
       title: "Scene 8: The Puzzle of the Rainbow Bridge",
-      narrative: `Continuing onward, ${heroName} reaches the Rainbow Bridge leading to the peak of the hill. But to cross, a friendly riddle appears on a wooden sign: "What gets bigger the more you share it?" ${heroName} thinks out loud... "Is it happiness and love?" The sign glows green, and the door opens!`,
+      narrative: `Narrator: Continuing their quest, they come across the magical Rainbow Bridge.\nMia: Look at the sign on the bridge! It has a friendly riddle!\nWise Owl: To cross the bridge, answer this: What grows bigger the more you give it away?\nLeo: Hmm... Is it money?\nMia: No, Leo! Is it kindness and love?\nWise Owl: Correct! The bridge sparkles open for you!`,
       visual: `A magical glowing rainbow bridge with friendly riddle wooden sign, fantasy landscape, high resolution ${artStyle}.`
     },
     {
       title: "Scene 9: Reaching the Summit of Friendship",
-      narrative: `At last, ${heroName} reaches the top of the hill. Floating in the air is the glowing Golden Star of Kindness! But instead of keeping it, ${heroName} lifts it high into the sky so its warm light can shine over the entire land for everyone to see.`,
+      narrative: `Narrator: At the top of the hill, the Golden Star of Kindness shines brilliantly.\nLeo: We found it! The Golden Star of Kindness!\nMia: Look how warm and peaceful its light feels!\nLeo: Let us share its light with the whole world so everyone feels happy!`,
       visual: `Golden Star of Kindness shining bright light across a beautiful valley, majestic and heartwarming scene, ${artStyle}.`
     },
     {
       title: "Scene 10: Interactive Explorer Quiz & Moral Lesson",
-      narrative: `What an incredible journey today! Let us review what we learned: ${coreMoral}. Always remember, true courage is shown through kindness, listening to friends, and helping those in need. You did an amazing job exploring with us today!`,
+      narrative: `Narrator: What a fantastic adventure today! Let us reflect on our lesson.\nMia: Remember explorers, true strength is showing kindness and helping friends!\nLeo: When you care for others, your own heart shines like a star!\nNarrator: ${coreMoral}`,
       visual: `Exploration badge with golden stars, cheerful celebration background, interactive presentation slide style in ${artStyle}.`
     },
     {
       title: "Scene 11: Explorer Fun Question Time",
-      narrative: `Now it is your turn, super explorer! Here is a question for you: What was your favorite act of kindness in today's story? Talk about it with your family or friends, or leave a comment below! We love hearing your creative ideas.`,
+      narrative: `Narrator: Now it is time for our Daily Explorer Question!\nMia: What was your favorite part of today's adventure?\nLeo: Did you like helping Pip the squirrel or solving the rainbow riddle? Tell your parents or write in the comments!`,
       visual: `Cute cartoon character holding a big colorful question mark sign, bright interactive graphics, ${artStyle}.`
     },
     {
       title: "Scene 12: See You in the Next Daily Episode!",
-      narrative: `Thank you for joining us for Episode ${episodeNumber} of ${seriesTitle}! Don't forget to like, subscribe, and click the bell icon so you never miss our daily adventures! See you tomorrow for Episode ${episodeNumber + 1}! Keep shining bright!`,
+      narrative: `Narrator: Thank you for joining Episode ${episodeNumber} of ${seriesTitle}!\nLeo: Don't forget to press the Like and Subscribe button!\nMia: Click the bell icon so you never miss our daily episodes!\nLeo and Mia: See you tomorrow explorers! Keep shining bright!`,
       visual: `Subscribe and Like buttons with colorful party confetti and cartoon friends waving goodbye, ${artStyle}.`
     }
   ];

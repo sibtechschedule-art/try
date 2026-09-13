@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Episode, VideoConfig } from '../types';
-import { getPollinationsImageUrl, WebAudioBGMGenerator, drawVideoFrameToCanvas } from '../services/videoStudioService';
-import { Play, Pause, Download, Volume2, Sparkles, Film, CheckCircle, RefreshCw } from 'lucide-react';
+import {
+  getPollinationsImageUrl,
+  WebAudioBGMGenerator,
+  drawVideoFrameToCanvas,
+  parseDialogueScript,
+  CHARACTER_PROFILES
+} from '../services/videoStudioService';
+import { Play, Pause, Download, Volume2, Sparkles, Film, CheckCircle, RefreshCw, MessageSquare } from 'lucide-react';
 
 interface VideoStudioProps {
   episode: Episode;
@@ -27,6 +33,8 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSceneIdx, setCurrentSceneIdx] = useState(0);
   const [sceneProgress, setSceneProgress] = useState(0);
+  const [activeSpeaker, setActiveSpeaker] = useState('Narrator');
+  const [currentLineText, setCurrentLineText] = useState('');
   const [loadedImages, setLoadedImages] = useState<Record<number, HTMLImageElement>>({});
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [isRenderingVideo, setIsRenderingVideo] = useState(false);
@@ -123,9 +131,11 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
       videoConfig,
       episode.title,
       formatTime(totalElapsedSec),
-      formatTime(totalCalculatedSec)
+      formatTime(totalCalculatedSec),
+      activeSpeaker,
+      currentLineText
     );
-  }, [currentSceneIdx, sceneProgress, loadedImages, videoConfig, episode, totalCalculatedSec]);
+  }, [currentSceneIdx, sceneProgress, loadedImages, videoConfig, episode, totalCalculatedSec, activeSpeaker, currentLineText]);
 
   // Start / Stop Playback
   const handleTogglePlay = () => {
@@ -141,7 +151,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
     if (bgmRef.current && videoConfig.bgMusicTrack !== 'none') {
       bgmRef.current.start(videoConfig.bgMusicTrack, videoConfig.bgMusicVolume);
     }
-    speakSceneScript(currentSceneIdx);
+    speakSceneScript(currentSceneIdx, 0);
   };
 
   const stopPlayback = () => {
@@ -151,31 +161,49 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
     if (requestAnimRef.current) cancelAnimationFrame(requestAnimRef.current);
   };
 
-  const speakSceneScript = (sceneIdx: number) => {
+  const speakSceneScript = (sceneIdx: number, lineIdx = 0) => {
     if (sceneIdx >= episode.scenes.length) {
       stopPlayback();
       setCurrentSceneIdx(0);
       setSceneProgress(0);
+      setActiveSpeaker('Narrator');
+      setCurrentLineText('');
       return;
     }
 
     const scene = episode.scenes[sceneIdx];
     setCurrentSceneIdx(sceneIdx);
 
+    const dialogueLines = parseDialogueScript(scene.narrativeScript);
+    if (lineIdx >= dialogueLines.length) {
+      // Move to next scene
+      speakSceneScript(sceneIdx + 1, 0);
+      return;
+    }
+
+    const line = dialogueLines[lineIdx];
+    setActiveSpeaker(line.speaker);
+    setCurrentLineText(line.text);
+
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(scene.narrativeScript);
+      const utterance = new SpeechSynthesisUtterance(line.text);
+
+      // Multi-character voice pitch & rate modulation
+      const profile = CHARACTER_PROFILES[line.speaker] || CHARACTER_PROFILES['Narrator'];
+      utterance.pitch = profile.pitch * videoConfig.voicePitch;
+      utterance.rate = profile.rate * videoConfig.voiceRate;
+
       if (videoConfig.voiceName) {
         const selectedVoice = availableVoices.find(v => v.name === videoConfig.voiceName);
         if (selectedVoice) utterance.voice = selectedVoice;
       }
-      utterance.pitch = videoConfig.voicePitch;
-      utterance.rate = videoConfig.voiceRate;
 
       startTimeRef.current = performance.now();
+      const lineEstimatedSec = Math.max((line.text.split(' ').length / 2.5), 2.5);
 
-      // Progress animation
+      // Animation frame step
       const animateProgress = (timestamp: number) => {
         const elapsedSec = (timestamp - startTimeRef.current) / 1000;
         const progress = Math.min(elapsedSec / scene.durationSec, 1);
@@ -189,22 +217,13 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
       requestAnimRef.current = requestAnimationFrame(animateProgress);
 
       utterance.onend = () => {
-        if (sceneIdx + 1 < episode.scenes.length) {
-          speakSceneScript(sceneIdx + 1);
-        } else {
-          stopPlayback();
-        }
+        speakSceneScript(sceneIdx, lineIdx + 1);
       };
 
       utterance.onerror = () => {
-        // Fallback to timer if SpeechSynthesis stutters
         setTimeout(() => {
-          if (sceneIdx + 1 < episode.scenes.length) {
-            speakSceneScript(sceneIdx + 1);
-          } else {
-            stopPlayback();
-          }
-        }, scene.durationSec * 1000);
+          speakSceneScript(sceneIdx, lineIdx + 1);
+        }, lineEstimatedSec * 1000);
       };
 
       window.speechSynthesis.speak(utterance);
@@ -246,7 +265,6 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
 
       mediaRecorder.start();
 
-      // Render each frame sequentially
       let currentSec = 0;
       const totalSec = totalCalculatedSec;
 
@@ -254,7 +272,6 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
         currentSec += 1;
         setRecordingProgressSec(currentSec);
 
-        // Find current scene corresponding to currentSec
         let accum = 0;
         let foundIdx = 0;
         for (let i = 0; i < episode.scenes.length; i++) {
@@ -269,14 +286,20 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
         const sceneDuration = activeScene.durationSec;
         const progress = Math.min((currentSec - accum) / sceneDuration, 1);
 
+        const dialogue = parseDialogueScript(activeScene.narrativeScript);
+        const lineIdx = Math.floor(progress * dialogue.length) % dialogue.length;
+        const activeLine = dialogue[lineIdx] || dialogue[0];
+
         setCurrentSceneIdx(foundIdx);
         setSceneProgress(progress);
+        setActiveSpeaker(activeLine.speaker);
+        setCurrentLineText(activeLine.text);
 
         if (currentSec >= totalSec) {
           clearInterval(renderLoop);
           mediaRecorder.stop();
         }
-      }, 100); // 10x fast render loop simulation for export
+      }, 100);
 
     } catch (err) {
       console.error("Video export failed:", err);
@@ -291,7 +314,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
       <div className="studio-header">
         <div>
           <h2><Film className="icon" /> 5+ Minute YouTube Video Studio</h2>
-          <p className="subtitle">High quality 1080p canvas renderer with free AI artwork, audio synthesis & voiceover.</p>
+          <p className="subtitle">Animated video renderer with multi-character talking voices, 2D animations & background music.</p>
         </div>
 
         <div className="duration-badge">
@@ -329,7 +352,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
               disabled={isGeneratingImages || isRenderingVideo}
             >
               {isPlaying ? <Pause /> : <Play />}
-              <span>{isPlaying ? 'Pause Video' : 'Play Live Preview'}</span>
+              <span>{isPlaying ? 'Pause Video' : 'Play Live Talking Preview'}</span>
             </button>
 
             <button
@@ -348,7 +371,22 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
           <h3><Sparkles className="icon" /> Video Customization</h3>
 
           <div className="form-group">
-            <label>AI Voice Narration Voice</label>
+            <label><MessageSquare className="icon-sm" /> Character Voices & Dialogue Engine</label>
+            <div className="character-voices-grid">
+              {Object.entries(CHARACTER_PROFILES).map(([key, prof]) => (
+                <div key={key} className="character-voice-tag" style={{ borderLeft: `4px solid ${prof.color}` }}>
+                  <span className="character-icon">{prof.avatarIcon}</span>
+                  <div className="character-info">
+                    <span className="character-name">{prof.name}</span>
+                    <span className="character-pitch">Pitch: {prof.pitch}x</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Master Voice Narration Accent</label>
             <select
               value={videoConfig.voiceName}
               onChange={(e) => setVideoConfig({ ...videoConfig, voiceName: e.target.value })}
@@ -361,7 +399,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Voice Pitch</label>
+              <label>Master Pitch Boost</label>
               <input
                 type="range"
                 min="0.8"
@@ -374,7 +412,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
             </div>
 
             <div className="form-group">
-              <label>Voice Pace</label>
+              <label>Voice Speed</label>
               <input
                 type="range"
                 min="0.7"
@@ -424,7 +462,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
                 checked={videoConfig.kenBurnsEffect}
                 onChange={(e) => setVideoConfig({ ...videoConfig, kenBurnsEffect: e.target.checked })}
               />
-              Enable Ken Burns Dynamic Image Zoom & Panning
+              Enable Ken Burns Dynamic Zoom & Panning
             </label>
           </div>
 
@@ -439,7 +477,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
                   onClick={() => {
                     setCurrentSceneIdx(idx);
                     setSceneProgress(0);
-                    if (isPlaying) speakSceneScript(idx);
+                    if (isPlaying) speakSceneScript(idx, 0);
                   }}
                 >
                   <div className="scene-header">
