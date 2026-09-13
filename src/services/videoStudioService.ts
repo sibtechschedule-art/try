@@ -1,4 +1,11 @@
 import type { ArtStyle, VideoConfig, SubtitleStyle } from '../types';
+import {
+  BROADCAST_CHARACTER_PROFILES,
+  type CharacterVoiceProfile
+} from './speechSynthesisService';
+
+export type { CharacterVoiceProfile };
+export const DEFAULT_CHARACTER_PROFILES = BROADCAST_CHARACTER_PROFILES;
 
 /**
  * Returns a free AI generated image URL using Pollinations AI image service.
@@ -87,28 +94,6 @@ export class WebAudioBGMGenerator {
 }
 
 /**
- * Character voice profiles for multi-character dialogue
- */
-export interface CharacterVoiceProfile {
-  name: string;
-  pitch: number;
-  rate: number;
-  voiceName?: string;
-  color: string;
-  avatarIcon: string;
-  role: string;
-}
-
-export const DEFAULT_CHARACTER_PROFILES: Record<string, CharacterVoiceProfile> = {
-  'Leo': { name: 'Leo', pitch: 1.35, rate: 1.05, color: '#3b82f6', avatarIcon: '🦁', role: 'Brave Little Lion Explorer' },
-  'Mia': { name: 'Mia', pitch: 1.5, rate: 1.0, color: '#ec4899', avatarIcon: '🦊', role: 'Smart & Curious Fox' },
-  'Pip Squirrel': { name: 'Pip Squirrel', pitch: 1.65, rate: 1.15, color: '#f59e0b', avatarIcon: '🐿️', role: 'Playful Little Squirrel' },
-  'Wise Owl': { name: 'Wise Owl', pitch: 0.8, rate: 0.85, color: '#8b5cf6', avatarIcon: '🦉', role: 'Gentle Old Forest Teacher' },
-  'Mama Squirrel': { name: 'Mama Squirrel', pitch: 1.25, rate: 0.95, color: '#10b981', avatarIcon: '🐿️', role: 'Kind Woodland Parent' },
-  'Narrator': { name: 'Narrator', pitch: 1.0, rate: 0.95, color: '#facc15', avatarIcon: '✨', role: 'Storybook Host' }
-};
-
-/**
  * Parses multi-line script into speaker dialogues
  */
 export interface DialogueLine {
@@ -135,7 +120,8 @@ export function parseDialogueScript(rawScript: string): DialogueLine[] {
 }
 
 /**
- * Draws high-definition animated video frame with procedural scene graphics & expressive character sprite cards
+ * Draws high-definition animated video frame with procedural scene graphics,
+ * vibrant kid-friendly scene borders, and broadcast-ready expressive character containers
  */
 export function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -178,12 +164,17 @@ export function drawVideoFrameToCanvas(
   // 2. Continuous Motion Effects (Floating Stars, Drifting Clouds, Magic Particles)
   drawMovingVectorEffects(ctx, width, height, time);
 
-  // 3. Render Expressive Character Sprites / Cards on Screen
-  drawExpressiveCharacterSprites(ctx, width, height, activeSpeaker, time, progressRatio, customCharacterProfiles);
+  // 3. Render Vibrant Expressive Character Art Containers & Active Speaker Highlights
+  const speakerCoords = drawExpressiveCharacterSprites(ctx, width, height, activeSpeaker, time, progressRatio, customCharacterProfiles);
 
-  // 4. Top Overlay Bar
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-  ctx.fillRect(0, 0, width, 65);
+  // 4. Top Header Overlay Bar with Broadcast Branding
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+  ctx.fillRect(0, 0, width, 68);
+
+  // Decorative Accent Bar under Header
+  const activeProfile = customCharacterProfiles[activeSpeaker] || DEFAULT_CHARACTER_PROFILES['Narrator'];
+  ctx.fillStyle = activeProfile?.color || '#facc15';
+  ctx.fillRect(0, 65, width, 3);
 
   ctx.fillStyle = '#fef08a';
   ctx.font = 'bold 22px sans-serif';
@@ -195,17 +186,48 @@ export function drawVideoFrameToCanvas(
   ctx.textAlign = 'right';
   ctx.fillText(`${currentTimeFormatted} / ${totalTimeFormatted}`, width - 24, 40);
 
-  // 5. Active Speaker Badge & Dialogue Subtitles
+  // 5. Active Speaker Speech Bubble & Dialogue Subtitles
   const lineToDraw = currentLineText || fullText;
-  drawSubtitlesAndSpeaker(ctx, lineToDraw, activeSpeaker, videoConfig.subtitleStyle, width, height, customCharacterProfiles);
+  drawSubtitlesAndSpeaker(ctx, lineToDraw, activeSpeaker, videoConfig.subtitleStyle, width, height, customCharacterProfiles, speakerCoords);
 
-  // 6. Bottom Scene Progress Bar
-  const activeProfile = customCharacterProfiles[activeSpeaker] || DEFAULT_CHARACTER_PROFILES['Narrator'];
+  // 6. Kid-Friendly Outer Border Framing & Star Corner Accents
+  drawKidFriendlySceneFrame(ctx, width, height, time);
+
+  // 7. Bottom Scene Progress Bar
   ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.fillRect(0, height - 8, width, 8);
 
   ctx.fillStyle = activeProfile?.color || '#3b82f6';
   ctx.fillRect(0, height - 8, width * progressRatio, 8);
+}
+
+/**
+ * Kid-friendly decorative border framing with sparkling corner badges
+ */
+function drawKidFriendlySceneFrame(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(254, 240, 138, 0.4)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(8, 8, width - 16, height - 16);
+
+  // Corner Star Accents
+  const corners = [
+    { x: 20, y: 20 },
+    { x: width - 20, y: 20 },
+    { x: 20, y: height - 20 },
+    { x: width - 20, y: height - 20 }
+  ];
+
+  for (const c of corners) {
+    const scale = 0.8 + Math.sin(time * 4) * 0.2;
+    ctx.fillStyle = '#facc15';
+    ctx.font = `${Math.floor(20 * scale)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⭐', c.x, c.y);
+  }
+
+  ctx.restore();
 }
 
 /**
@@ -310,7 +332,7 @@ function drawMovingVectorEffects(ctx: CanvasRenderingContext2D, width: number, h
 }
 
 /**
- * Expressive character sprite card frames with talking mouth animation, eyes, speech bubbles, and bounce motion
+ * Vibrant Expressive Character Art Containers with active speaker pulsing highlights, mouth animations, and position tracking
  */
 function drawExpressiveCharacterSprites(
   ctx: CanvasRenderingContext2D,
@@ -320,13 +342,15 @@ function drawExpressiveCharacterSprites(
   time: number,
   progress: number,
   profiles: Record<string, CharacterVoiceProfile>
-) {
+): { x: number; y: number } | null {
   const characterList = [
     { key: 'Leo', defaultX: width * 0.2, defaultY: height - 250 },
     { key: 'Mia', defaultX: width * 0.4, defaultY: height - 245 },
     { key: 'Pip Squirrel', defaultX: width * 0.6, defaultY: height - 235 },
     { key: 'Wise Owl', defaultX: width * 0.8, defaultY: height - 290 }
   ];
+
+  let activeSpeakerCoords: { x: number; y: number } | null = null;
 
   for (const charItem of characterList) {
     const prof = profiles[charItem.key] || DEFAULT_CHARACTER_PROFILES[charItem.key] || DEFAULT_CHARACTER_PROFILES['Narrator'];
@@ -337,86 +361,93 @@ function drawExpressiveCharacterSprites(
     const walkX = charItem.defaultX + Math.sin(progress * Math.PI * 2) * 20;
     const cardY = charItem.defaultY - bounceY;
 
+    if (isSpeaking) {
+      activeSpeakerCoords = { x: walkX, y: cardY };
+    }
+
     ctx.save();
     ctx.translate(walkX, cardY);
 
-    const cardWidth = 140;
-    const cardHeight = 160;
+    const cardWidth = 145;
+    const cardHeight = 165;
 
-    // Glowing Aura for Active Speaker
+    // Vibrant Pulsing Speaker Glow / Ring
     if (isSpeaking) {
+      const pulseSize = 10 + Math.sin(time * 12) * 6;
       ctx.shadowColor = prof.color;
-      ctx.shadowBlur = 25;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = prof.color;
       ctx.beginPath();
-      ctx.roundRect(-cardWidth / 2 - 10, -cardHeight / 2 - 10, cardWidth + 20, cardHeight + 20, 24);
+      ctx.roundRect(-cardWidth / 2 - pulseSize, -cardHeight / 2 - pulseSize, cardWidth + pulseSize * 2, cardHeight + pulseSize * 2, 28);
       ctx.fill();
       ctx.shadowBlur = 0;
     }
 
-    // Expressive Card Background
-    ctx.fillStyle = isSpeaking ? '#ffffff' : 'rgba(255, 255, 255, 0.92)';
+    // Expressive Character Art Container
+    ctx.fillStyle = isSpeaking ? '#ffffff' : 'rgba(255, 255, 255, 0.94)';
     ctx.strokeStyle = isSpeaking ? prof.color : 'rgba(148, 163, 184, 0.5)';
     ctx.lineWidth = isSpeaking ? 5 : 2;
     ctx.beginPath();
-    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 20);
+    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 22);
     ctx.fill();
     ctx.stroke();
 
-    // Top Header Banner on Card
+    // Vibrant Top Banner Frame
     ctx.fillStyle = prof.color;
     ctx.beginPath();
-    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, 32, [20, 20, 0, 0]);
+    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, 34, [22, 22, 0, 0]);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 15px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(prof.name, 0, -cardHeight / 2 + 22);
+    ctx.fillText(prof.name, 0, -cardHeight / 2 + 23);
 
-    // Character Emoji Avatar Sprite
-    ctx.font = isSpeaking ? '56px sans-serif' : '48px sans-serif';
+    // Large Character Emoji Avatar Sprite
+    ctx.font = isSpeaking ? '58px sans-serif' : '48px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(prof.avatarIcon, 0, -10);
+    ctx.fillText(prof.avatarIcon, 0, -8);
 
-    // Animated Mouth Indicator / Talking Wave Effect
+    // Talking Mouth Animation & Facial Expression
     if (isSpeaking) {
       const mouthOpen = Math.abs(Math.sin(time * 12)) * 12;
       ctx.fillStyle = '#ef4444';
       ctx.beginPath();
-      ctx.ellipse(0, 22, 10, Math.max(3, mouthOpen), 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 24, 11, Math.max(3, mouthOpen), 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Speech Indicator Popup
+      // Speech Indicator Badge Above Head
       ctx.fillStyle = prof.color;
       ctx.font = 'bold 12px sans-serif';
       ctx.beginPath();
-      ctx.roundRect(-45, -cardHeight / 2 - 32, 90, 24, 12);
+      ctx.roundRect(-50, -cardHeight / 2 - 34, 100, 26, 13);
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('🗣️ SPEAKING', 0, -cardHeight / 2 - 16);
+      ctx.fillText('🗣️ SPEAKING', 0, -cardHeight / 2 - 17);
     } else {
       // Gentle Smile line
       ctx.strokeStyle = '#64748b';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(0, 18, 8, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.arc(0, 20, 8, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.stroke();
     }
 
-    // Role Subtitle Label
+    // Role Badge Footer
     ctx.fillStyle = '#475569';
     ctx.font = '11px sans-serif';
     ctx.fillText(prof.role.split(' ')[0], 0, cardHeight / 2 - 12);
 
     ctx.restore();
   }
+
+  return activeSpeakerCoords;
 }
 
 /**
- * Subtitles with Active Speaker Tag & Styling
+ * Subtitles with Active Speaker Tag & Speech Bubble Tail pointing from active speaker
  */
 function drawSubtitlesAndSpeaker(
   ctx: CanvasRenderingContext2D,
@@ -425,7 +456,8 @@ function drawSubtitlesAndSpeaker(
   style: SubtitleStyle,
   width: number,
   height: number,
-  profiles: Record<string, CharacterVoiceProfile>
+  profiles: Record<string, CharacterVoiceProfile>,
+  speakerCoords: { x: number; y: number } | null
 ) {
   if (!text) return;
 
@@ -454,31 +486,47 @@ function drawSubtitlesAndSpeaker(
   const boxHeight = lines.length * lineHeight + padding * 2 + 25;
   const boxY = height - 125 - (lines.length - 1) * lineHeight;
 
+  // Speech Bubble Pointer Tail (pointing from speaker location to dialogue container)
+  if (speakerCoords && style === 'bubble-caption') {
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.beginPath();
+    ctx.moveTo(speakerCoords.x, boxY);
+    ctx.lineTo(speakerCoords.x - 20, boxY - 25);
+    ctx.lineTo(speakerCoords.x + 20, boxY - 25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Speaker Badge Title Box
   ctx.fillStyle = profile.color;
   ctx.beginPath();
-  ctx.roundRect(50, boxY - 34, 220, 38, 12);
+  ctx.roundRect(50, boxY - 36, 240, 40, 14);
   ctx.fill();
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${profile.avatarIcon} ${speaker} (${profile.role.split(' ')[0]})`, 160, boxY - 10);
+  ctx.fillText(`${profile.avatarIcon} ${speaker} (${profile.role.split(' ')[0]})`, 170, boxY - 11);
 
   // Subtitle Container Box
   ctx.font = 'bold 28px sans-serif';
   if (style === 'bubble-caption') {
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.strokeStyle = profile.color;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.roundRect(40, boxY, width - 80, boxHeight, 16);
+    ctx.roundRect(40, boxY, width - 80, boxHeight, 18);
     ctx.fill();
+    ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
     lines.forEach((line, idx) => {
       ctx.fillText(line, width / 2, boxY + padding + 22 + idx * lineHeight);
     });
   } else if (style === 'yellow-stroke') {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     ctx.fillRect(0, boxY - 5, width, boxHeight + 10);
 
     ctx.strokeStyle = '#000000';
@@ -491,7 +539,7 @@ function drawSubtitlesAndSpeaker(
       ctx.fillText(line, width / 2, lineY);
     });
   } else {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
     ctx.fillRect(20, boxY, width - 40, boxHeight);
 
     ctx.fillStyle = '#f8fafc';
