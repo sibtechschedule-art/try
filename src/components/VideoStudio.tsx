@@ -5,9 +5,10 @@ import {
   WebAudioBGMGenerator,
   drawVideoFrameToCanvas,
   parseDialogueScript,
-  CHARACTER_PROFILES
+  DEFAULT_CHARACTER_PROFILES,
+  type CharacterVoiceProfile
 } from '../services/videoStudioService';
-import { Play, Pause, Download, Volume2, Sparkles, Film, CheckCircle, RefreshCw, MessageSquare } from 'lucide-react';
+import { Play, Pause, Download, Volume2, Sparkles, Film, CheckCircle, RefreshCw, MessageSquare, Mic } from 'lucide-react';
 
 interface VideoStudioProps {
   episode: Episode;
@@ -29,6 +30,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
     minVideoDurationSec: 300,
   });
 
+  const [characterProfiles, setCharacterProfiles] = useState<Record<string, CharacterVoiceProfile>>(DEFAULT_CHARACTER_PROFILES);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSceneIdx, setCurrentSceneIdx] = useState(0);
@@ -133,9 +135,10 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
       formatTime(totalElapsedSec),
       formatTime(totalCalculatedSec),
       activeSpeaker,
-      currentLineText
+      currentLineText,
+      characterProfiles
     );
-  }, [currentSceneIdx, sceneProgress, loadedImages, videoConfig, episode, totalCalculatedSec, activeSpeaker, currentLineText]);
+  }, [currentSceneIdx, sceneProgress, loadedImages, videoConfig, episode, totalCalculatedSec, activeSpeaker, currentLineText, characterProfiles]);
 
   // Start / Stop Playback
   const handleTogglePlay = () => {
@@ -190,12 +193,15 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
 
       const utterance = new SpeechSynthesisUtterance(line.text);
 
-      // Multi-character voice pitch & rate modulation
-      const profile = CHARACTER_PROFILES[line.speaker] || CHARACTER_PROFILES['Narrator'];
+      // Distinct Multi-character voice pitch, rate, and voice profile selection
+      const profile = characterProfiles[line.speaker] || DEFAULT_CHARACTER_PROFILES[line.speaker] || DEFAULT_CHARACTER_PROFILES['Narrator'];
       utterance.pitch = profile.pitch * videoConfig.voicePitch;
       utterance.rate = profile.rate * videoConfig.voiceRate;
 
-      if (videoConfig.voiceName) {
+      if (profile.voiceName) {
+        const specificVoice = availableVoices.find(v => v.name === profile.voiceName);
+        if (specificVoice) utterance.voice = specificVoice;
+      } else if (videoConfig.voiceName) {
         const selectedVoice = availableVoices.find(v => v.name === videoConfig.voiceName);
         if (selectedVoice) utterance.voice = selectedVoice;
       }
@@ -308,13 +314,23 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
     }
   };
 
+  const handleUpdateCharacterVoice = (charName: string, field: keyof CharacterVoiceProfile, value: string | number) => {
+    setCharacterProfiles(prev => ({
+      ...prev,
+      [charName]: {
+        ...prev[charName],
+        [field]: value
+      }
+    }));
+  };
+
   return (
     <div className="video-studio-container">
       {/* Studio Header & Duration Status */}
       <div className="studio-header">
         <div>
           <h2><Film className="icon" /> 5+ Minute YouTube Video Studio</h2>
-          <p className="subtitle">Animated video renderer with multi-character talking voices, 2D animations & background music.</p>
+          <p className="subtitle">Animated video renderer with expressive character sprites, unique multi-character voices & 1080p export.</p>
         </div>
 
         <div className="duration-badge">
@@ -352,7 +368,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
               disabled={isGeneratingImages || isRenderingVideo}
             >
               {isPlaying ? <Pause /> : <Play />}
-              <span>{isPlaying ? 'Pause Video' : 'Play Live Talking Preview'}</span>
+              <span>{isPlaying ? 'Pause Video' : 'Play Animated Dialogue Preview'}</span>
             </button>
 
             <button
@@ -368,17 +384,43 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ episode }) => {
 
         {/* Right Column: Studio Configuration */}
         <div className="config-section">
-          <h3><Sparkles className="icon" /> Video Customization</h3>
+          <h3><Sparkles className="icon" /> Character Voice & Animation Customization</h3>
 
           <div className="form-group">
-            <label><MessageSquare className="icon-sm" /> Character Voices & Dialogue Engine</label>
+            <label><MessageSquare className="icon-sm" /> Character Voice Profiles & Pitch Controls</label>
             <div className="character-voices-grid">
-              {Object.entries(CHARACTER_PROFILES).map(([key, prof]) => (
+              {Object.entries(characterProfiles).map(([key, prof]) => (
                 <div key={key} className="character-voice-tag" style={{ borderLeft: `4px solid ${prof.color}` }}>
-                  <span className="character-icon">{prof.avatarIcon}</span>
-                  <div className="character-info">
+                  <div className="character-voice-header">
+                    <span className="character-icon">{prof.avatarIcon}</span>
                     <span className="character-name">{prof.name}</span>
-                    <span className="character-pitch">Pitch: {prof.pitch}x</span>
+                  </div>
+
+                  <div className="character-voice-controls">
+                    <div className="control-field">
+                      <label><Mic className="icon-xs" /> Voice</label>
+                      <select
+                        value={prof.voiceName || ''}
+                        onChange={(e) => handleUpdateCharacterVoice(key, 'voiceName', e.target.value)}
+                      >
+                        <option value="">(Default Accent)</option>
+                        {availableVoices.map((v, i) => (
+                          <option key={i} value={v.name}>{v.name.slice(0, 22)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="control-field">
+                      <label>Pitch: {prof.pitch}x</label>
+                      <input
+                        type="range"
+                        min="0.7"
+                        max="1.8"
+                        step="0.05"
+                        value={prof.pitch}
+                        onChange={(e) => handleUpdateCharacterVoice(key, 'pitch', parseFloat(e.target.value))}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}

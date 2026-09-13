@@ -93,17 +93,19 @@ export interface CharacterVoiceProfile {
   name: string;
   pitch: number;
   rate: number;
+  voiceName?: string;
   color: string;
   avatarIcon: string;
+  role: string;
 }
 
-export const CHARACTER_PROFILES: Record<string, CharacterVoiceProfile> = {
-  'Leo': { name: 'Leo', pitch: 1.3, rate: 1.05, color: '#3b82f6', avatarIcon: '🦁' },
-  'Mia': { name: 'Mia', pitch: 1.45, rate: 1.0, color: '#ec4899', avatarIcon: '🦊' },
-  'Pip Squirrel': { name: 'Pip Squirrel', pitch: 1.6, rate: 1.15, color: '#f59e0b', avatarIcon: '🐿️' },
-  'Wise Owl': { name: 'Wise Owl', pitch: 0.85, rate: 0.88, color: '#8b5cf6', avatarIcon: '🦉' },
-  'Mama Squirrel': { name: 'Mama Squirrel', pitch: 1.25, rate: 0.95, color: '#10b981', avatarIcon: '🐿️' },
-  'Narrator': { name: 'Narrator', pitch: 1.0, rate: 0.95, color: '#facc15', avatarIcon: '✨' }
+export const DEFAULT_CHARACTER_PROFILES: Record<string, CharacterVoiceProfile> = {
+  'Leo': { name: 'Leo', pitch: 1.35, rate: 1.05, color: '#3b82f6', avatarIcon: '🦁', role: 'Brave Little Lion Explorer' },
+  'Mia': { name: 'Mia', pitch: 1.5, rate: 1.0, color: '#ec4899', avatarIcon: '🦊', role: 'Smart & Curious Fox' },
+  'Pip Squirrel': { name: 'Pip Squirrel', pitch: 1.65, rate: 1.15, color: '#f59e0b', avatarIcon: '🐿️', role: 'Playful Little Squirrel' },
+  'Wise Owl': { name: 'Wise Owl', pitch: 0.8, rate: 0.85, color: '#8b5cf6', avatarIcon: '🦉', role: 'Gentle Old Forest Teacher' },
+  'Mama Squirrel': { name: 'Mama Squirrel', pitch: 1.25, rate: 0.95, color: '#10b981', avatarIcon: '🐿️', role: 'Kind Woodland Parent' },
+  'Narrator': { name: 'Narrator', pitch: 1.0, rate: 0.95, color: '#facc15', avatarIcon: '✨', role: 'Storybook Host' }
 };
 
 /**
@@ -133,7 +135,7 @@ export function parseDialogueScript(rawScript: string): DialogueLine[] {
 }
 
 /**
- * Draws high-definition animated video frame with procedural scene graphics & vector character animations
+ * Draws high-definition animated video frame with procedural scene graphics & expressive character sprite cards
  */
 export function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -146,7 +148,8 @@ export function drawVideoFrameToCanvas(
   currentTimeFormatted: string,
   totalTimeFormatted: string,
   activeSpeaker: string = 'Narrator',
-  currentLineText: string = ''
+  currentLineText: string = '',
+  customCharacterProfiles: Record<string, CharacterVoiceProfile> = DEFAULT_CHARACTER_PROFILES
 ) {
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
@@ -175,11 +178,11 @@ export function drawVideoFrameToCanvas(
   // 2. Continuous Motion Effects (Floating Stars, Drifting Clouds, Magic Particles)
   drawMovingVectorEffects(ctx, width, height, time);
 
-  // 3. Render Animated Characters on Screen
-  drawAnimatedCharacters(ctx, width, height, activeSpeaker, time, progressRatio);
+  // 3. Render Expressive Character Sprites / Cards on Screen
+  drawExpressiveCharacterSprites(ctx, width, height, activeSpeaker, time, progressRatio, customCharacterProfiles);
 
   // 4. Top Overlay Bar
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
   ctx.fillRect(0, 0, width, 65);
 
   ctx.fillStyle = '#fef08a';
@@ -194,13 +197,14 @@ export function drawVideoFrameToCanvas(
 
   // 5. Active Speaker Badge & Dialogue Subtitles
   const lineToDraw = currentLineText || fullText;
-  drawSubtitlesAndSpeaker(ctx, lineToDraw, activeSpeaker, videoConfig.subtitleStyle, width, height, time);
+  drawSubtitlesAndSpeaker(ctx, lineToDraw, activeSpeaker, videoConfig.subtitleStyle, width, height, customCharacterProfiles);
 
   // 6. Bottom Scene Progress Bar
+  const activeProfile = customCharacterProfiles[activeSpeaker] || DEFAULT_CHARACTER_PROFILES['Narrator'];
   ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.fillRect(0, height - 8, width, 8);
 
-  ctx.fillStyle = CHARACTER_PROFILES[activeSpeaker]?.color || '#3b82f6';
+  ctx.fillStyle = activeProfile?.color || '#3b82f6';
   ctx.fillRect(0, height - 8, width * progressRatio, 8);
 }
 
@@ -261,15 +265,15 @@ function drawProceduralSceneBackground(
   ctx.fillStyle = '#16a34a';
   ctx.beginPath();
   ctx.moveTo(0, height);
-  ctx.quadraticCurveTo(width * 0.3, height - 180 + hillOffset, width * 0.6, height - 120);
-  ctx.quadraticCurveTo(width * 0.85, height - 80, width, height);
+  ctx.quadraticCurveTo(width * 0.3, height - 210 + hillOffset, width * 0.6, height - 150);
+  ctx.quadraticCurveTo(width * 0.85, height - 100, width, height);
   ctx.fill();
 
   ctx.fillStyle = '#22c55e';
   ctx.beginPath();
   ctx.moveTo(0, height);
-  ctx.quadraticCurveTo(width * 0.25, height - 120, width * 0.5, height - 190 + hillOffset);
-  ctx.quadraticCurveTo(width * 0.75, height - 230, width, height);
+  ctx.quadraticCurveTo(width * 0.25, height - 150, width * 0.5, height - 220 + hillOffset);
+  ctx.quadraticCurveTo(width * 0.75, height - 260, width, height);
   ctx.fill();
 }
 
@@ -293,7 +297,7 @@ function drawMovingVectorEffects(ctx: CanvasRenderingContext2D, width: number, h
   ctx.save();
   for (let i = 0; i < 25; i++) {
     const x = (Math.sin(i * 99 + time * 0.5) * 0.5 + 0.5) * width;
-    const y = ((i * 35 + time * 20) % (height - 150)) + 60;
+    const y = ((i * 35 + time * 20) % (height - 180)) + 60;
     const alpha = Math.sin(time * 3 + i) * 0.5 + 0.5;
     const size = 3 + (i % 4);
 
@@ -306,70 +310,106 @@ function drawMovingVectorEffects(ctx: CanvasRenderingContext2D, width: number, h
 }
 
 /**
- * Animated character avatars walking and bouncing on screen
+ * Expressive character sprite card frames with talking mouth animation, eyes, speech bubbles, and bounce motion
  */
-function drawAnimatedCharacters(
+function drawExpressiveCharacterSprites(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   activeSpeaker: string,
   time: number,
-  progress: number
+  progress: number,
+  profiles: Record<string, CharacterVoiceProfile>
 ) {
-  const characters = [
-    { name: 'Leo', x: width * 0.25, y: height - 190, icon: '🦁', color: '#3b82f6' },
-    { name: 'Mia', x: width * 0.45, y: height - 185, icon: '🦊', color: '#ec4899' },
-    { name: 'Pip Squirrel', x: width * 0.65, y: height - 170, icon: '🐿️', color: '#f59e0b' },
-    { name: 'Wise Owl', x: width * 0.8, y: height - 260, icon: '🦉', color: '#8b5cf6' }
+  const characterList = [
+    { key: 'Leo', defaultX: width * 0.2, defaultY: height - 250 },
+    { key: 'Mia', defaultX: width * 0.4, defaultY: height - 245 },
+    { key: 'Pip Squirrel', defaultX: width * 0.6, defaultY: height - 235 },
+    { key: 'Wise Owl', defaultX: width * 0.8, defaultY: height - 290 }
   ];
 
-  for (const char of characters) {
-    const isSpeaking = activeSpeaker.toLowerCase().includes(char.name.toLowerCase());
+  for (const charItem of characterList) {
+    const prof = profiles[charItem.key] || DEFAULT_CHARACTER_PROFILES[charItem.key] || DEFAULT_CHARACTER_PROFILES['Narrator'];
+    const isSpeaking = activeSpeaker.toLowerCase().includes(charItem.key.toLowerCase());
 
-    // Bounce and movement animation
-    const bounceY = isSpeaking ? Math.abs(Math.sin(time * 8)) * 25 : Math.sin(time * 2 + char.x) * 6;
-    const walkX = char.x + Math.sin(progress * Math.PI * 2) * 15;
-    const charY = char.y - bounceY;
+    // Movement & Talking bounce
+    const bounceY = isSpeaking ? Math.abs(Math.sin(time * 10)) * 28 : Math.sin(time * 2.5 + charItem.defaultX) * 8;
+    const walkX = charItem.defaultX + Math.sin(progress * Math.PI * 2) * 20;
+    const cardY = charItem.defaultY - bounceY;
 
     ctx.save();
-    ctx.translate(walkX, charY);
+    ctx.translate(walkX, cardY);
 
-    // Glowing circle behind active speaker
+    const cardWidth = 140;
+    const cardHeight = 160;
+
+    // Glowing Aura for Active Speaker
     if (isSpeaking) {
-      ctx.fillStyle = 'rgba(253, 224, 71, 0.4)';
+      ctx.shadowColor = prof.color;
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.beginPath();
-      ctx.arc(0, -10, 55, 0, Math.PI * 2);
+      ctx.roundRect(-cardWidth / 2 - 10, -cardHeight / 2 - 10, cardWidth + 20, cardHeight + 20, 24);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Expressive Card Background
+    ctx.fillStyle = isSpeaking ? '#ffffff' : 'rgba(255, 255, 255, 0.92)';
+    ctx.strokeStyle = isSpeaking ? prof.color : 'rgba(148, 163, 184, 0.5)';
+    ctx.lineWidth = isSpeaking ? 5 : 2;
+    ctx.beginPath();
+    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    // Top Header Banner on Card
+    ctx.fillStyle = prof.color;
+    ctx.beginPath();
+    ctx.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, 32, [20, 20, 0, 0]);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(prof.name, 0, -cardHeight / 2 + 22);
+
+    // Character Emoji Avatar Sprite
+    ctx.font = isSpeaking ? '56px sans-serif' : '48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(prof.avatarIcon, 0, -10);
+
+    // Animated Mouth Indicator / Talking Wave Effect
+    if (isSpeaking) {
+      const mouthOpen = Math.abs(Math.sin(time * 12)) * 12;
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.ellipse(0, 22, 10, Math.max(3, mouthOpen), 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Speaking mouth indicator wave
-      ctx.strokeStyle = char.color;
+      // Speech Indicator Popup
+      ctx.fillStyle = prof.color;
+      ctx.font = 'bold 12px sans-serif';
+      ctx.beginPath();
+      ctx.roundRect(-45, -cardHeight / 2 - 32, 90, 24, 12);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('🗣️ SPEAKING', 0, -cardHeight / 2 - 16);
+    } else {
+      // Gentle Smile line
+      ctx.strokeStyle = '#64748b';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(0, -10, 60 + Math.sin(time * 12) * 5, 0, Math.PI * 2);
+      ctx.arc(0, 18, 8, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.stroke();
     }
 
-    // Avatar Circle Badge
-    ctx.fillStyle = char.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, 42, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#ffffff';
-    ctx.stroke();
-
-    // Emoji Character Representation
-    ctx.font = '42px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(char.icon, 0, 2);
-
-    // Name Label
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillRect(-40, 48, 80, 22);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillText(char.name.split(' ')[0], 0, 59);
+    // Role Subtitle Label
+    ctx.fillStyle = '#475569';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(prof.role.split(' ')[0], 0, cardHeight / 2 - 12);
 
     ctx.restore();
   }
@@ -385,11 +425,11 @@ function drawSubtitlesAndSpeaker(
   style: SubtitleStyle,
   width: number,
   height: number,
-  _time: number
+  profiles: Record<string, CharacterVoiceProfile>
 ) {
   if (!text) return;
 
-  const profile = CHARACTER_PROFILES[speaker] || CHARACTER_PROFILES['Narrator'];
+  const profile = profiles[speaker] || DEFAULT_CHARACTER_PROFILES[speaker] || DEFAULT_CHARACTER_PROFILES['Narrator'];
   const padding = 20;
   const maxTextWidth = width - 140;
   ctx.font = 'bold 28px sans-serif';
@@ -417,13 +457,13 @@ function drawSubtitlesAndSpeaker(
   // Speaker Badge Title Box
   ctx.fillStyle = profile.color;
   ctx.beginPath();
-  ctx.roundRect(50, boxY - 32, 180, 36, 12);
+  ctx.roundRect(50, boxY - 34, 220, 38, 12);
   ctx.fill();
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${profile.avatarIcon} ${speaker}`, 140, boxY - 8);
+  ctx.fillText(`${profile.avatarIcon} ${speaker} (${profile.role.split(' ')[0]})`, 160, boxY - 10);
 
   // Subtitle Container Box
   ctx.font = 'bold 28px sans-serif';
