@@ -1,90 +1,93 @@
-export type AgeGroup = '3-5' | '6-8' | '9-12';
+export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 
-export type ArtStyle =
-  | '3d-cartoon'
-  | 'disney-pixar'
-  | 'storybook-illustration'
-  | 'anime-kid'
-  | 'cute-water-color';
-
-export type BgMusicTrack =
-  | 'cheerful-adventure'
-  | 'playful-lullaby'
-  | 'magical-fairytale'
-  | 'upbeat-fun'
-  | 'none';
-
-export type SubtitleStyle = 'yellow-stroke' | 'bubble-caption' | 'minimal-white';
-
-export interface Scene {
-  id: number;
-  title: string;
-  visualPrompt: string;
-  narrativeScript: string;
-  durationSec: number;
-  moralInsight?: string;
-  interactiveQuestion?: string;
-  imageUrl?: string;
+export interface SchoolSettings {
+  operatingStartTime: string; // e.g. "07:00"
+  operatingEndTime: string;   // e.g. "17:00"
+  periodDurationMinutes: number; // e.g. 60
+  days: DayOfWeek[];
+  lunchBreakStart?: string; // e.g. "12:00"
+  lunchBreakEnd?: string;   // e.g. "13:00"
 }
 
-export interface YouTubeMetadata {
+export interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  gradeLevel: string; // e.g. "Grade 9", "Grade 10"
+  weeklyFrequency: number; // number of periods required per week
+  color: string;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  qualifiedSubjectIds: string[];
+  maxWeeklyHours: number; // e.g. 20 hours/periods per week limit
+  buildingLocation: string; // e.g. "Building A"
+  blockedDays: DayOfWeek[];
+  availableTimeSlots: string[]; // e.g. ["08:00-09:00", "09:00-10:00", ...]
+  avatarUrl?: string;
+}
+
+export interface Classroom {
+  id: string;
+  roomNumber: string;
+  name: string;
+  capacity: number;
+  building: string; // e.g. "Building A", "Building B"
+  availableFrom: string; // "07:00"
+  availableTo: string;   // "17:00"
+}
+
+export interface ScheduleSlot {
+  id: string;
+  day: DayOfWeek;
+  startTime: string; // "08:00"
+  endTime: string;   // "09:00"
+  periodIndex: number;
+  subjectId: string;
+  teacherId: string;
+  substituteTeacherId?: string;
+  classroomId: string;
+  gradeLevel: string; // "Grade 9"
+  sectionCode: string; // "9-A"
+  isSubstituted?: boolean;
+  originalTeacherId?: string;
+  hasConflict?: boolean;
+  conflictReason?: string;
+}
+
+export interface SubstitutionRecord {
+  id: string;
+  slotId: string;
+  originalTeacherId: string;
+  substituteTeacherId: string;
+  date: string;
+  reason: string;
+  status: 'active' | 'resolved';
+}
+
+export interface ConflictBottleneck {
+  id: string;
+  type: 'teacher_double_booked' | 'room_double_booked' | 'heavy_workload' | 'distant_building' | 'unavailable_teacher';
+  severity: 'high' | 'medium' | 'low';
   title: string;
   description: string;
-  tags: string[];
-  category: string;
-  chapters: { time: string; title: string }[];
-  madeForKids: boolean;
+  affectedSlotIds: string[];
+  suggestedFix?: {
+    actionType: 'reassign_teacher' | 'move_slot' | 'change_room';
+    description: string;
+    newTeacherId?: string;
+    newClassroomId?: string;
+    newDay?: DayOfWeek;
+    newStartTime?: string;
+    newEndTime?: string;
+  };
 }
 
-export interface Episode {
-  id: string;
-  episodeNumber: number;
-  seriesTitle: string;
-  title: string;
-  theme: string;
-  ageGroup: AgeGroup;
-  artStyle: ArtStyle;
-  synopsis: string;
-  targetDurationSec: number; // e.g. 300 (5 minutes minimum)
-  calculatedDurationSec: number;
-  scenes: Scene[];
-  outroMoral: string;
-  quizQuestions: { question: string; options: string[]; answer: string }[];
-  youtubeMetadata?: YouTubeMetadata;
-  createdAt: string;
-}
-
-export interface VideoConfig {
-  resolution: '1080p' | '720p';
-  aspectRatio: '16:9' | '9:16';
-  voiceName: string;
-  voicePitch: number;
-  voiceRate: number;
-  bgMusicTrack: BgMusicTrack;
-  bgMusicVolume: number;
-  subtitleStyle: SubtitleStyle;
-  kenBurnsEffect: boolean;
-  minVideoDurationSec: number; // strictly defaults to 300 (5 mins)
-}
-
-export interface ThumbnailConfig {
-  title: string;
-  subtitle: string;
-  episodeBadge: string;
-  themeColor: string;
-  bgImageUrl: string;
-  fontSize: number;
-  sticker: 'star' | 'crown' | 'fire' | 'heart' | 'magic';
-}
-
-export interface DailyScheduleItem {
-  id: string;
-  date: string;
-  episodeNumber: number;
-  seriesTitle: string;
-  episodeTitle: string;
-  status: 'planned' | 'generated' | 'exported' | 'published';
-  targetDurationMin: number;
-  theme: string;
-  notes?: string;
+export interface StudentViewData {
+  sectionCode: string;
+  gradeLevel: string;
+  slots: ScheduleSlot[];
 }
