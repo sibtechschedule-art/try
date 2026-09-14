@@ -82,18 +82,18 @@ export const SubstitutionDrawer: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <UserCheck className="w-7 h-7 text-indigo-400" />
+        <h1 className="text-2xl font-bold text-blue-950 flex items-center gap-2">
+          <UserCheck className="w-7 h-7 text-blue-900" />
           Emergency Substitute Pool & Drag-and-Drop
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-slate-600 text-sm mt-1">
           Grab qualified substitute teachers from the pool and drop them onto active schedule slots with real-time conflict validation warnings.
         </p>
       </div>
 
       {conflictWarning && (
-        <div className="bg-rose-950/80 border border-rose-600 rounded-xl p-4 flex items-center gap-3 text-rose-200 text-xs font-semibold animate-bounce shadow-xl">
-          <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
+        <div className="bg-rose-100 border border-rose-400 rounded-xl p-4 flex items-center gap-3 text-rose-900 text-xs font-bold shadow-md animate-bounce">
+          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
           <span>{conflictWarning}</span>
         </div>
       )}
@@ -104,10 +104,10 @@ export const SubstitutionDrawer: React.FC = () => {
           <button
             key={day}
             onClick={() => setSelectedDay(day)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
               selectedDay === day
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                ? 'bg-blue-900 text-white shadow-md'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             {day}
@@ -117,16 +117,16 @@ export const SubstitutionDrawer: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Substitute Pool Sidebar */}
-        <div className="lg:col-span-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl backdrop-blur-sm h-fit space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-emerald-400" />
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-md h-fit space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h3 className="text-sm font-bold text-blue-950 flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-emerald-600" />
               Available Faculty Pool ({availableSubstitutes.length})
             </h3>
-            <span className="text-[10px] text-slate-400 font-mono">Drag Card</span>
+            <span className="text-[10px] text-slate-500 font-mono">Drag Card</span>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600">
             Click and drag any faculty card onto an active class slot on the right to assign them as a substitute.
           </p>
 
@@ -136,23 +136,23 @@ export const SubstitutionDrawer: React.FC = () => {
                 key={t.id}
                 draggable
                 onDragStart={e => handleDragStart(e, t.id)}
-                className="bg-slate-900 border border-slate-700/80 hover:border-indigo-500 rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition shadow-md group flex items-center justify-between"
+                className="bg-slate-50 border border-slate-200 hover:border-blue-900/60 rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition shadow-sm group flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <img
                     src={t.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150'}
                     alt={t.name}
-                    className="w-10 h-10 rounded-full object-cover border border-indigo-500/40"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-400"
                   />
                   <div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition">{t.name}</h4>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                      <Clock className="w-3 h-3 text-slate-500" /> Max {t.maxWeeklyHours} hrs/week
+                    <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-900 transition">{t.name}</h4>
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-slate-400" /> Max {t.maxWeeklyHours} hrs/week
                     </p>
                   </div>
                 </div>
 
-                <div className="text-slate-500 group-hover:text-indigo-400 transition">
+                <div className="text-slate-400 group-hover:text-blue-900 transition">
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>
@@ -162,8 +162,8 @@ export const SubstitutionDrawer: React.FC = () => {
 
         {/* Target Schedule Slots Drop Zone */}
         <div className="lg:col-span-8 space-y-3">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-indigo-400" />
+          <h3 className="text-sm font-bold text-blue-950 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-900" />
             Active Scheduled Class Slots for {selectedDay}
           </h3>
 
@@ -184,28 +184,28 @@ export const SubstitutionDrawer: React.FC = () => {
                   onDragOver={e => handleDragOver(e, slot.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={e => handleDrop(e, slot)}
-                  className={`p-4 rounded-xl border transition shadow-lg ${
+                  className={`p-4 rounded-xl border transition shadow-sm ${
                     isDragTarget
-                      ? 'bg-indigo-950/80 border-indigo-400 border-2 scale-[1.01]'
+                      ? 'bg-blue-50 border-blue-900 border-2 scale-[1.01]'
                       : slot.isSubstituted
-                      ? 'bg-slate-800/90 border-amber-500/60'
-                      : 'bg-slate-800/80 border-slate-700/80'
+                      ? 'bg-amber-50 border-amber-400'
+                      : 'bg-white border-slate-200'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <span
                         className="px-2.5 py-1 rounded text-xs font-bold text-white shadow-sm"
-                        style={{ backgroundColor: subject?.color || '#3B82F6' }}
+                        style={{ backgroundColor: subject?.color || '#1E3A8A' }}
                       >
                         {subject?.code || 'SUB'}
                       </span>
                       <div>
-                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                           {subject?.name}
-                          <span className="text-xs text-slate-400 font-mono">({slot.sectionCode})</span>
+                          <span className="text-xs text-slate-500 font-mono">({slot.sectionCode})</span>
                         </h4>
-                        <p className="text-xs text-slate-400 flex items-center gap-3 mt-0.5">
+                        <p className="text-xs text-slate-600 flex items-center gap-3 mt-0.5">
                           <span>⏱ {slot.startTime} - {slot.endTime}</span>
                           <span>🚪 {room?.roomNumber}</span>
                         </p>
@@ -214,15 +214,15 @@ export const SubstitutionDrawer: React.FC = () => {
 
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block">Assigned Instructor</span>
-                        <span className="text-xs font-semibold text-white flex items-center justify-end gap-1">
+                        <span className="text-[10px] text-slate-500 block font-semibold">Assigned Instructor</span>
+                        <span className="text-xs font-bold text-slate-900 flex items-center justify-end gap-1">
                           {slot.isSubstituted && (
-                            <span className="text-[10px] text-amber-400 font-bold">[SUB]</span>
+                            <span className="text-[10px] text-amber-600 font-bold">[SUB]</span>
                           )}
                           {activeTeacher?.name}
                         </span>
                         {slot.isSubstituted && originalTeacher && (
-                          <span className="text-[10px] text-slate-500 block line-through">
+                          <span className="text-[10px] text-slate-400 block line-through">
                             Orig: {originalTeacher.name}
                           </span>
                         )}
@@ -231,7 +231,7 @@ export const SubstitutionDrawer: React.FC = () => {
                       {slot.isSubstituted && (
                         <button
                           onClick={() => removeSubstitute(slot.id)}
-                          className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs"
+                          className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs cursor-pointer"
                           title="Restore Original Teacher"
                         >
                           <X className="w-4 h-4" />
@@ -244,7 +244,7 @@ export const SubstitutionDrawer: React.FC = () => {
             })}
 
             {activeDaySlots.length === 0 && (
-              <div className="bg-slate-800/40 border border-dashed border-slate-700 rounded-2xl p-12 text-center text-slate-400">
+              <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center text-slate-500">
                 No active class sessions scheduled for {selectedDay}.
               </div>
             )}

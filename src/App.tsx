@@ -26,34 +26,34 @@ function MainLayout() {
   const { bottlenecks } = useSchedule();
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
       {/* Top Header & Clean Responsive Nav Bar */}
-      <header className="bg-slate-800/90 border-b border-slate-700/80 sticky top-0 z-40 backdrop-blur-md print:hidden">
+      <header className="bg-blue-900 border-b border-amber-500/30 sticky top-0 z-40 shadow-md print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 py-3">
           <div
             onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-3.5 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-full bg-white p-1 shadow-md group-hover:scale-105 transition flex items-center justify-center">
+              <img src="/logo.png" alt="SIBTECH Logo" className="w-full h-full object-contain rounded-full" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-                Schedulify
+              <h1 className="text-xl font-black text-amber-400 tracking-tight flex items-center gap-2">
+                SIBTECH Scheduler
               </h1>
-              <span className="text-[11px] font-medium text-slate-400 block -mt-1">
-                College Timetable & Operations Engine
+              <span className="text-[11px] font-semibold text-blue-200 block tracking-wide uppercase">
+                SOUTHWESTERN INSTITUTE OF BUSINESS AND TECHNOLOGY, INC.
               </span>
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center justify-center gap-1 bg-slate-900/80 border border-slate-700/80 p-1.5 rounded-xl">
+          <nav className="flex flex-wrap items-center justify-center gap-1 bg-blue-950/80 border border-blue-800/80 p-1.5 rounded-xl shadow-inner">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'dashboard'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <LayoutDashboard className="w-4 h-4" /> Dashboard
@@ -63,8 +63,8 @@ function MainLayout() {
               onClick={() => setActiveTab('schedule')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'schedule'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <Calendar className="w-4 h-4" /> Master Schedule
@@ -74,8 +74,8 @@ function MainLayout() {
               onClick={() => setActiveTab('subjects')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'subjects'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <BookOpen className="w-4 h-4" /> Subjects
@@ -85,8 +85,8 @@ function MainLayout() {
               onClick={() => setActiveTab('teachers')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'teachers'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <Users className="w-4 h-4" /> Teachers
@@ -96,8 +96,8 @@ function MainLayout() {
               onClick={() => setActiveTab('classrooms')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'classrooms'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <DoorClosed className="w-4 h-4" /> Classrooms
@@ -107,8 +107,8 @@ function MainLayout() {
               onClick={() => setActiveTab('substitutions')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'substitutions'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <UserCheck className="w-4 h-4" /> Substitutions
@@ -118,13 +118,13 @@ function MainLayout() {
               onClick={() => setActiveTab('ai_assistant')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition relative ${
                 activeTab === 'ai_assistant'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-amber-400" /> AI Assistant
+              <Sparkles className="w-4 h-4 text-amber-300" /> AI Assistant
               {bottlenecks.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-400 text-blue-950">
                   {bottlenecks.length}
                 </span>
               )}
@@ -134,8 +134,8 @@ function MainLayout() {
               onClick={() => setActiveTab('student_portal')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'student_portal'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <Smartphone className="w-4 h-4" /> Student View
@@ -145,8 +145,8 @@ function MainLayout() {
               onClick={() => setActiveTab('export_hub')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'export_hub'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-500 text-blue-950 font-bold shadow-md'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-800'
               }`}
             >
               <Download className="w-4 h-4" /> Export & Sync

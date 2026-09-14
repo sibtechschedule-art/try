@@ -89,35 +89,36 @@ export const ScheduleGrid: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Printable Header - hidden on screen, visible on print */}
-      <div className="hidden print:block mb-6">
-        <h1 className="text-2xl font-bold text-black">Schedulify - Master College Timetable</h1>
+      <div className="hidden print:block mb-6 text-center">
+        <h1 className="text-2xl font-bold text-black">SOUTHWESTERN INSTITUTE OF BUSINESS AND TECHNOLOGY, INC.</h1>
+        <h2 className="text-lg font-semibold text-gray-800">SIBTECH Master Timetable Matrix Grid</h2>
         <p className="text-sm text-gray-600">Generated Schedule Grid for {selectedDay}</p>
       </div>
 
       {/* Screen Toolbar */}
-      <div className="print:hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
+      <div className="print:hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-md">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Calendar className="w-7 h-7 text-indigo-400" />
+          <h1 className="text-2xl font-bold text-blue-950 flex items-center gap-2">
+            <Calendar className="w-7 h-7 text-blue-900" />
             Master Schedule Matrix Grid
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <p className="text-slate-600 text-sm mt-0.5">
             Interactive timetable matrix with room auto-locking, emergency room jumbling, and historical week archives.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Historical Week Selector */}
-          <div className="relative flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
-            <History className="w-4 h-4 text-indigo-400" />
+          <div className="relative flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5">
+            <History className="w-4 h-4 text-blue-900" />
             <select
               value={selectedArchiveId || ''}
               onChange={e => selectArchive(e.target.value || null)}
-              className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer"
             >
-              <option value="" className="bg-slate-900 text-white">Current Master Schedule</option>
+              <option value="" className="bg-white text-slate-800">Current Master Schedule</option>
               {archives.map(arch => (
-                <option key={arch.id} value={arch.id} className="bg-slate-900 text-white">
+                <option key={arch.id} value={arch.id} className="bg-white text-slate-800">
                   Archive: {arch.weekLabel} ({arch.createdAt})
                 </option>
               ))}
@@ -126,27 +127,27 @@ export const ScheduleGrid: React.FC = () => {
 
           <button
             onClick={() => setArchiveModalOpen(true)}
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+            className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
             title="Save Current Schedule to Historical Archive"
           >
-            <Archive className="w-4 h-4 text-slate-400" />
+            <Archive className="w-4 h-4 text-slate-600" />
             Archive Week
           </button>
 
           <button
             onClick={jumbleRooms}
-            className="px-3.5 py-2 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
             title="Emergency Jumble: Reassign room locks to vacant rooms"
           >
-            <Shuffle className="w-4 h-4 text-amber-400" />
+            <Shuffle className="w-4 h-4 text-amber-600" />
             Emergency Jumble Rooms
           </button>
 
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5"
+            className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-4 h-4 text-amber-400" />
             Print / PDF
           </button>
         </div>
@@ -158,10 +159,10 @@ export const ScheduleGrid: React.FC = () => {
           <button
             key={day}
             onClick={() => setSelectedDay(day)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
               selectedDay === day
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700/60'
+                ? 'bg-blue-900 text-white shadow-md'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             {day}
@@ -170,18 +171,18 @@ export const ScheduleGrid: React.FC = () => {
       </div>
 
       {/* Timetable Grid Matrix */}
-      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-2xl backdrop-blur-sm print:bg-white print:border-none print:shadow-none print:p-0">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md print:bg-white print:border-none print:shadow-none print:p-0">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm print:text-black">
             <thead>
-              <tr className="border-b border-slate-700/80 print:border-black">
-                <th className="p-3 text-xs font-semibold text-slate-400 uppercase tracking-wider w-36 print:text-black">
+              <tr className="border-b border-slate-200 print:border-black">
+                <th className="p-3 text-xs font-bold text-slate-600 uppercase tracking-wider w-36 print:text-black">
                   Time Slot
                 </th>
                 {classrooms.map(room => (
-                  <th key={room.id} className="p-3 text-xs font-semibold text-slate-300 print:text-black min-w-[200px]">
+                  <th key={room.id} className="p-3 text-xs font-bold text-blue-950 print:text-black min-w-[200px]">
                     <div className="flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-indigo-400 print:hidden" />
+                      <Lock className="w-3.5 h-3.5 text-blue-900 print:hidden" />
                       <span>{room.roomNumber}</span>
                     </div>
                   </th>
@@ -189,10 +190,10 @@ export const ScheduleGrid: React.FC = () => {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-700/50 print:divide-gray-300">
+            <tbody className="divide-y divide-slate-200 print:divide-gray-300">
               {dayTimeSlots.map(timeSlot => (
-                <tr key={`${timeSlot.startTime}-${timeSlot.endTime}`} className="hover:bg-slate-700/20 print:hover:bg-transparent">
-                  <td className="p-3 font-mono text-xs text-slate-400 print:text-black font-semibold whitespace-nowrap">
+                <tr key={`${timeSlot.startTime}-${timeSlot.endTime}`} className="hover:bg-slate-50 print:hover:bg-transparent">
+                  <td className="p-3 font-mono text-xs text-slate-600 print:text-black font-semibold whitespace-nowrap">
                     {timeSlot.startTime} - {timeSlot.endTime}
                   </td>
 
@@ -206,7 +207,7 @@ export const ScheduleGrid: React.FC = () => {
 
                     if (!matchedSlot) {
                       return (
-                        <td key={room.id} className="p-3 text-xs text-slate-600 italic print:text-gray-400">
+                        <td key={room.id} className="p-3 text-xs text-slate-400 italic print:text-gray-400">
                           <span className="print:hidden">— Available —</span>
                         </td>
                       );
@@ -220,40 +221,40 @@ export const ScheduleGrid: React.FC = () => {
                       <td key={room.id} className="p-2">
                         <div
                           onClick={() => openEditModal(matchedSlot)}
-                          className="group relative p-3 rounded-xl border transition cursor-pointer shadow-md print:border-gray-400 print:bg-gray-100"
+                          className="group relative p-3 rounded-xl border transition cursor-pointer shadow-sm print:border-gray-400 print:bg-gray-100"
                           style={{
-                            backgroundColor: subject ? `${subject.color}15` : '#1E293B',
-                            borderColor: subject ? `${subject.color}60` : '#334155',
+                            backgroundColor: subject ? `${subject.color}15` : '#F8FAFC',
+                            borderColor: subject ? `${subject.color}60` : '#CBD5E1',
                           }}
                         >
                           <div className="flex items-start justify-between gap-1 mb-1">
                             <span
                               className="px-2 py-0.5 rounded text-[10px] font-bold text-white print:text-black"
-                              style={{ backgroundColor: subject?.color || '#3B82F6' }}
+                              style={{ backgroundColor: subject?.color || '#1E3A8A' }}
                             >
                               {subject?.code || 'SUB'}
                             </span>
 
                             <div className="flex items-center gap-1">
                               {matchedSlot.isSubstituted && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-black print:hidden">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-blue-950 print:hidden">
                                   SUB
                                 </span>
                               )}
-                              <Edit3 className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition print:hidden" />
+                              <Edit3 className="w-3.5 h-3.5 text-slate-500 opacity-0 group-hover:opacity-100 transition print:hidden" />
                             </div>
                           </div>
 
-                          <h4 className="text-xs font-semibold text-white print:text-black line-clamp-1 mb-1">
+                          <h4 className="text-xs font-bold text-slate-900 print:text-black line-clamp-1 mb-1">
                             {subject?.name || 'Class Session'}
                           </h4>
 
-                          <div className="flex items-center justify-between text-[11px] text-slate-300 print:text-gray-800">
+                          <div className="flex items-center justify-between text-[11px] text-slate-700 print:text-gray-800">
                             <span className="flex items-center gap-1">
-                              <UserCheck className="w-3 h-3 text-indigo-400 print:hidden" />
+                              <UserCheck className="w-3 h-3 text-blue-900 print:hidden" />
                               {teacher?.name || 'Unassigned'}
                             </span>
-                            <span className="font-mono text-[10px] text-slate-400 print:text-gray-600">
+                            <span className="font-mono text-[10px] text-slate-500 print:text-gray-600">
                               {matchedSlot.sectionCode}
                             </span>
                           </div>
