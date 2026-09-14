@@ -1,143 +1,233 @@
-import type { SchoolSettings, Subject, Teacher, Classroom, ScheduleSlot, DayOfWeek } from '../types';
+import type { SchoolSettings, Subject, Teacher, Classroom, ScheduleSlot, DayOfWeek, CollegeYearLevel } from '../types';
 
-export function generateTimeSlots(settings: SchoolSettings): { startTime: string; endTime: string; periodIndex: number }[] {
-  const slots: { startTime: string; endTime: string; periodIndex: number }[] = [];
-  const [startHour, startMin] = settings.operatingStartTime.split(':').map(Number);
-  const [endHour, endMin] = settings.operatingEndTime.split(':').map(Number);
+export function timeToMinutes(timeStr: string): number {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+}
 
-  const totalStartMins = startHour * 60 + startMin;
-  const totalEndMins = endHour * 60 + endMin;
-  const duration = settings.periodDurationMinutes;
+export function minutesToTime(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
 
-  let currentMins = totalStartMins;
-  let index = 1;
+// Generates time slots per day based on school daily operating hours
+export function generateDayTimeSlots(day: DayOfWeek, settings: SchoolSettings): { startTime: string; endTime: string }[] {
+  const dayConfig = settings.dailyOperatingHours[day];
+  if (!dayConfig || !dayConfig.enabled) return [];
 
-  while (currentMins + duration <= totalEndMins) {
-    const sH = String(Math.floor(currentMins / 60)).padStart(2, '0');
-    const sM = String(currentMins % 60).padStart(2, '0');
-    const eH = String(Math.floor((currentMins + duration) / 60)).padStart(2, '0');
-    const eM = String((currentMins + duration) % 60).padStart(2, '0');
+  const startMins = timeToMinutes(dayConfig.startTime);
+  const endMins = timeToMinutes(dayConfig.endTime);
+  const periodMinutes = settings.periodDurationMinutes || 60;
 
-    // Skip lunch break if configured
-    const slotStartStr = `${sH}:${sM}`;
-    if (settings.lunchBreakStart && settings.lunchBreakEnd) {
-      if (slotStartStr >= settings.lunchBreakStart && slotStartStr < settings.lunchBreakEnd) {
-        currentMins += duration;
-        continue;
-      }
-    }
+  const slots: { startTime: string; endTime: string }[] = [];
+  let current = startMins;
 
+  while (current + periodMinutes <= endMins) {
     slots.push({
-      startTime: slotStartStr,
-      endTime: `${eH}:${eM}`,
-      periodIndex: index++
+      startTime: minutesToTime(current),
+      endTime: minutesToTime(current + periodMinutes),
     });
-
-    currentMins += duration;
+    current += periodMinutes;
   }
 
   return slots;
 }
 
+// Checks if a teacher is available during a given day and time window
+export function isTeacherAvailable(
+  teacher: Teacher,
+  day: DayOfWeek,
+  startTime: string,
+  endTime: string
+): boolean {
+  const avail = teacher.dailyAvailability[day];
+  if (!avail || !avail.enabled) return false;
+
+  const reqStart = timeToMinutes(startTime);
+  const reqEnd = timeToMinutes(endTime);
+  const teacherStart = timeToMinutes(avail.startTime);
+  const teacherEnd = timeToMinutes(avail.endTime);
+
+  return reqStart >= teacherStart && reqEnd <= teacherEnd;
+}
+
+// Checks if a room is locked / assigned to another session during the time window
+export function isRoomLockedAtTime(
+  classroomId: string,
+  day: DayOfWeek,
+  startTime: string,
+  endTime: string,
+  existingSlots: ScheduleSlot[],
+  ignoreSlotId?: string
+): boolean {
+  const reqStart = timeToMinutes(startTime);
+  const reqEnd = timeToMinutes(endTime);
+
+  return existingSlots.some(slot => {
+    if (ignoreSlotId && slot.id === ignoreSlotId) return false;
+    if (slot.classroomId !== classroomId || slot.day !== day) return false;
+
+    const slotStart = timeToMinutes(slot.startTime);
+    const slotEnd = timeToMinutes(slot.endTime);
+
+    // Overlap check
+    return reqStart < slotEnd && reqEnd > slotStart;
+  });
+}
+
+// Checks if a teacher is double booked during the time window
+export function isTeacherBookedAtTime(
+  teacherId: string,
+  day: DayOfWeek,
+  startTime: string,
+  endTime: string,
+  existingSlots: ScheduleSlot[],
+  ignoreSlotId?: string
+): boolean {
+  const reqStart = timeToMinutes(startTime);
+  const reqEnd = timeToMinutes(endTime);
+
+  return existingSlots.some(slot => {
+    if (ignoreSlotId && slot.id === ignoreSlotId) return false;
+    const activeTeacherId = slot.substituteTeacherId || slot.teacherId;
+    if (activeTeacherId !== teacherId || slot.day !== day) return false;
+
+    const slotStart = timeToMinutes(slot.startTime);
+    const slotEnd = timeToMinutes(slot.endTime);
+
+    return reqStart < slotEnd && reqEnd > slotStart;
+  });
+}
+
+// Master Automated Schedule Generator Engine
 export function generateMasterSchedule(
-  settings: SchoolSettings,
   subjects: Subject[],
   teachers: Teacher[],
-  classrooms: Classroom[]
+  classrooms: Classroom[],
+  settings: SchoolSettings
 ): ScheduleSlot[] {
   const generatedSlots: ScheduleSlot[] = [];
-  const timePeriods = generateTimeSlots(settings);
-  const days: DayOfWeek[] = settings.days;
+  const teacherWeeklyHoursMap: Record<string, number> = {};
+  teachers.forEach(t => { teacherWeeklyHoursMap[t.id] = 0; });
 
-  // Track assignments: teacherId -> Set of "Day_Time"
-  const teacherBookings = new Map<string, Set<string>>();
-  teachers.forEach(t => teacherBookings.set(t.id, new Set()));
+  const sectionMap: Record<CollegeYearLevel, string[]> = {
+    '1st Year': ['BSCS 1-A', 'BSIT 1-B'],
+    '2nd Year': ['BSCS 2-A'],
+    '3rd Year': ['BSCS 3-A'],
+    '4th Year': ['BSCS 4-A'],
+  };
 
-  // Track room assignments: classroomId -> Set of "Day_Time"
-  const roomBookings = new Map<string, Set<string>>();
-  classrooms.forEach(r => roomBookings.set(r.id, new Set()));
+  if (classrooms.length === 0 || teachers.length === 0 || subjects.length === 0) {
+    return generatedSlots;
+  }
 
-  // Group subjects by grade level
-  const subjectsByGrade = new Map<string, Subject[]>();
-  subjects.forEach(sub => {
-    if (!subjectsByGrade.has(sub.gradeLevel)) {
-      subjectsByGrade.set(sub.gradeLevel, []);
-    }
-    subjectsByGrade.get(sub.gradeLevel)!.push(sub);
-  });
+  // Iterate over each subject and allocate required weekly frequency
+  for (const subject of subjects) {
+    const qualifiedTeachers = teachers.filter(t => t.qualifiedSubjectIds.includes(subject.id));
+    if (qualifiedTeachers.length === 0) continue;
 
-  const gradeLevels = Array.from(subjectsByGrade.keys());
+    const sections = sectionMap[subject.yearLevel] || ['SEC-1'];
+    const sessionsNeeded = subject.weeklyFrequency;
+    const durationMins = (subject.sessionDurationHours || 1) * 60;
 
-  gradeLevels.forEach((grade, gradeIdx) => {
-    const sectionCode = `${grade.replace('Grade ', '')}-A`;
-    const gradeSubjects = subjectsByGrade.get(grade) || [];
+    for (const sectionCode of sections) {
+      let allocatedCount = 0;
 
-    // Assign classrooms for this grade level
-    const room = classrooms[gradeIdx % classrooms.length] || classrooms[0];
-    if (!room) return;
+      for (const day of settings.days) {
+        if (allocatedCount >= sessionsNeeded) break;
 
-    // Create a pool of subject sessions to schedule based on weekly frequency
-    const sessionPool: Subject[] = [];
-    gradeSubjects.forEach(sub => {
-      for (let i = 0; i < sub.weeklyFrequency; i++) {
-        sessionPool.push(sub);
-      }
-    });
+        const dayConfig = settings.dailyOperatingHours[day];
+        if (!dayConfig || !dayConfig.enabled) continue;
 
-    let sessionIdx = 0;
+        const dayStart = timeToMinutes(dayConfig.startTime);
+        const dayEnd = timeToMinutes(dayConfig.endTime);
 
-    for (const day of days) {
-      for (const period of timePeriods) {
-        if (sessionIdx >= sessionPool.length) break;
+        // Try candidate time slots on this day
+        let currentStart = dayStart;
+        while (currentStart + durationMins <= dayEnd && allocatedCount < sessionsNeeded) {
+          const slotStartTime = minutesToTime(currentStart);
+          const slotEndTime = minutesToTime(currentStart + durationMins);
 
-        const timeKey = `${day}_${period.startTime}`;
+          // Find available qualified teacher
+          let assignedTeacher: Teacher | null = null;
+          for (const teacher of qualifiedTeachers) {
+            const currentHours = teacherWeeklyHoursMap[teacher.id] || 0;
+            if (currentHours + (durationMins / 60) > teacher.maxWeeklyHours) continue;
 
-        // Find an unassigned subject session
-        const subject = sessionPool[sessionIdx];
-        if (!subject) continue;
-
-        // Find qualified teacher who is available
-        const qualifiedTeachers = teachers.filter(t =>
-          t.qualifiedSubjectIds.includes(subject.id) &&
-          !t.blockedDays.includes(day) &&
-          (t.availableTimeSlots.length === 0 || t.availableTimeSlots.includes(period.startTime))
-        );
-
-        // Pick teacher with available slot
-        const availableTeacher = qualifiedTeachers.find(t => {
-          const bookings = teacherBookings.get(t.id);
-          return bookings && !bookings.has(timeKey);
-        });
-
-        // Check room availability
-        const isRoomFree = !roomBookings.get(room.id)?.has(timeKey);
-
-        if (availableTeacher && isRoomFree) {
-          // Double check teacher load
-          const currentLoad = Array.from(teacherBookings.get(availableTeacher.id) || []).length;
-          if (currentLoad < availableTeacher.maxWeeklyHours) {
-            teacherBookings.get(availableTeacher.id)!.add(timeKey);
-            roomBookings.get(room.id)!.add(timeKey);
-
-            generatedSlots.push({
-              id: `slot-${day}-${period.periodIndex}-${room.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-              day,
-              startTime: period.startTime,
-              endTime: period.endTime,
-              periodIndex: period.periodIndex,
-              subjectId: subject.id,
-              teacherId: availableTeacher.id,
-              classroomId: room.id,
-              gradeLevel: grade,
-              sectionCode
-            });
-
-            sessionIdx++;
+            if (isTeacherAvailable(teacher, day, slotStartTime, slotEndTime) &&
+                !isTeacherBookedAtTime(teacher.id, day, slotStartTime, slotEndTime, generatedSlots)) {
+              assignedTeacher = teacher;
+              break;
+            }
           }
+
+          if (assignedTeacher) {
+            // Find available classroom
+            let assignedRoom: Classroom | null = null;
+            for (const room of classrooms) {
+              if (!isRoomLockedAtTime(room.id, day, slotStartTime, slotEndTime, generatedSlots)) {
+                assignedRoom = room;
+                break;
+              }
+            }
+
+            if (assignedRoom) {
+              const newSlot: ScheduleSlot = {
+                id: `slot-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                day,
+                startTime: slotStartTime,
+                endTime: slotEndTime,
+                subjectId: subject.id,
+                teacherId: assignedTeacher.id,
+                classroomId: assignedRoom.id,
+                yearLevel: subject.yearLevel,
+                sectionCode,
+                isRoomLocked: true,
+              };
+
+              generatedSlots.push(newSlot);
+              teacherWeeklyHoursMap[assignedTeacher.id] += (durationMins / 60);
+              allocatedCount++;
+
+              // Advance start time past this session
+              currentStart += durationMins;
+              continue;
+            }
+          }
+
+          currentStart += settings.periodDurationMinutes || 60;
         }
       }
     }
-  });
+  }
 
   return generatedSlots;
+}
+
+// Emergency Room Jumble / Swap Engine
+export function jumbleRoomAssignments(
+  slots: ScheduleSlot[],
+  classrooms: Classroom[]
+): ScheduleSlot[] {
+  if (classrooms.length < 2) return slots;
+
+  const updatedSlots = [...slots];
+  for (let i = 0; i < updatedSlots.length; i++) {
+    const slot = updatedSlots[i];
+    // Find a different room that is free during slot.day and slot.startTime -> slot.endTime
+    const alternativeRoom = classrooms.find(r =>
+      r.id !== slot.classroomId &&
+      !isRoomLockedAtTime(r.id, slot.day, slot.startTime, slot.endTime, updatedSlots, slot.id)
+    );
+
+    if (alternativeRoom) {
+      updatedSlots[i] = {
+        ...slot,
+        classroomId: alternativeRoom.id,
+      };
+    }
+  }
+
+  return updatedSlots;
 }

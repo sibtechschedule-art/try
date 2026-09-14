@@ -6,270 +6,303 @@ import type {
   Classroom,
   ScheduleSlot,
   SubstitutionRecord,
-  ConflictBottleneck
+  ConflictBottleneck,
+  ArchivedSchedule,
+  DayOfWeek,
+  DayTimeRange
 } from '../types';
-import { generateMasterSchedule } from '../services/scheduleGenerator';
+import { storage } from '../services/storage';
+import { generateMasterSchedule, jumbleRoomAssignments } from '../services/scheduleGenerator';
 import { scanScheduleBottlenecks, autoResolveBottleneck } from '../services/conflictAssistant';
-
-const defaultSettings: SchoolSettings = {
-  operatingStartTime: '08:00',
-  operatingEndTime: '16:00',
-  periodDurationMinutes: 60,
-  days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-  lunchBreakStart: '12:00',
-  lunchBreakEnd: '13:00'
-};
-
-const defaultSubjects: Subject[] = [
-  { id: 'sub-1', name: 'Mathematics', code: 'MATH101', gradeLevel: 'Grade 9', weeklyFrequency: 5, color: '#3b82f6' },
-  { id: 'sub-2', name: 'Physics & General Science', code: 'SCI102', gradeLevel: 'Grade 9', weeklyFrequency: 4, color: '#10b981' },
-  { id: 'sub-3', name: 'English Literature', code: 'ENG103', gradeLevel: 'Grade 9', weeklyFrequency: 4, color: '#f59e0b' },
-  { id: 'sub-4', name: 'World History', code: 'HIS104', gradeLevel: 'Grade 10', weeklyFrequency: 3, color: '#8b5cf6' },
-  { id: 'sub-5', name: 'Computer Science', code: 'CS105', gradeLevel: 'Grade 10', weeklyFrequency: 4, color: '#ec4899' },
-  { id: 'sub-6', name: 'Physical Education', code: 'PE106', gradeLevel: 'Grade 10', weeklyFrequency: 2, color: '#06b6d4' }
-];
-
-const defaultTeachers: Teacher[] = [
-  {
-    id: 'tch-1',
-    name: 'Dr. Sarah Jenkins',
-    email: 's.jenkins@school.edu',
-    qualifiedSubjectIds: ['sub-1', 'sub-5'],
-    maxWeeklyHours: 20,
-    buildingLocation: 'Science Wing - Bldg A',
-    blockedDays: [],
-    availableTimeSlots: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00'],
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
-  },
-  {
-    id: 'tch-2',
-    name: 'Prof. Marcus Vance',
-    email: 'm.vance@school.edu',
-    qualifiedSubjectIds: ['sub-2'],
-    maxWeeklyHours: 18,
-    buildingLocation: 'Science Wing - Bldg A',
-    blockedDays: ['Friday'],
-    availableTimeSlots: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00'],
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
-  },
-  {
-    id: 'tch-3',
-    name: 'Ms. Elena Rostova',
-    email: 'e.rostova@school.edu',
-    qualifiedSubjectIds: ['sub-3', 'sub-4'],
-    maxWeeklyHours: 22,
-    buildingLocation: 'Humanities Hall - Bldg B',
-    blockedDays: [],
-    availableTimeSlots: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00'],
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'
-  },
-  {
-    id: 'tch-4',
-    name: 'Coach David Miller',
-    email: 'd.miller@school.edu',
-    qualifiedSubjectIds: ['sub-6'],
-    maxWeeklyHours: 15,
-    buildingLocation: 'Athletics Complex - Bldg C',
-    blockedDays: [],
-    availableTimeSlots: ['09:00', '10:00', '11:00', '13:00', '14:00'],
-    avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150'
-  },
-  {
-    id: 'tch-5',
-    name: 'Dr. Alan Turing',
-    email: 'a.turing@school.edu',
-    qualifiedSubjectIds: ['sub-1', 'sub-5'],
-    maxWeeklyHours: 20,
-    buildingLocation: 'Technology Center - Bldg D',
-    blockedDays: [],
-    availableTimeSlots: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00'],
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
-  }
-];
-
-const defaultClassrooms: Classroom[] = [
-  { id: 'room-101', roomNumber: 'Room 101', name: 'Mathematics Lab A', capacity: 35, building: 'Science Wing - Bldg A', availableFrom: '08:00', availableTo: '16:00' },
-  { id: 'room-102', roomNumber: 'Room 102', name: 'Physics & Chemistry Lab', capacity: 30, building: 'Science Wing - Bldg A', availableFrom: '08:00', availableTo: '16:00' },
-  { id: 'room-201', roomNumber: 'Room 201', name: 'Literature Lecture Room', capacity: 40, building: 'Humanities Hall - Bldg B', availableFrom: '08:00', availableTo: '16:00' },
-  { id: 'room-301', roomNumber: 'Room 301', name: 'Gymnasium & Field', capacity: 60, building: 'Athletics Complex - Bldg C', availableFrom: '08:00', availableTo: '16:00' }
-];
 
 interface ScheduleContextType {
   settings: SchoolSettings;
-  subjects: Subject[];
-  teachers: Teacher[];
-  classrooms: Classroom[];
-  masterSchedule: ScheduleSlot[];
-  substitutions: SubstitutionRecord[];
-  bottlenecks: ConflictBottleneck[];
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-
-  // Actions
   updateSettings: (newSettings: SchoolSettings) => void;
+  updateDailyOperatingHours: (day: DayOfWeek, range: DayTimeRange) => void;
+  subjects: Subject[];
   addSubject: (subject: Omit<Subject, 'id'>) => void;
-  updateSubject: (subject: Subject) => void;
+  updateSubject: (id: string, subject: Partial<Subject>) => void;
   deleteSubject: (id: string) => void;
+  teachers: Teacher[];
   addTeacher: (teacher: Omit<Teacher, 'id'>) => void;
-  updateTeacher: (teacher: Teacher) => void;
+  updateTeacher: (id: string, teacher: Partial<Teacher>) => void;
   deleteTeacher: (id: string) => void;
-  addClassroom: (classroom: Omit<Classroom, 'id'>) => void;
-  updateClassroom: (classroom: Classroom) => void;
+  classrooms: Classroom[];
+  addClassroom: (room: Omit<Classroom, 'id'>) => void;
+  updateClassroom: (id: string, room: Partial<Classroom>) => void;
   deleteClassroom: (id: string) => void;
-
-  // Schedule Generators & Slot Actions
-  handleGenerateSchedule: () => void;
-  updateScheduleSlot: (slot: ScheduleSlot) => void;
-  applySubstitution: (slotId: string, substituteTeacherId: string, reason?: string) => void;
-  resolveBottleneck: (bottleneckId: string) => void;
-  checkTeacherConflict: (teacherId: string, day: string, startTime: string, excludeSlotId?: string) => boolean;
+  scheduleSlots: ScheduleSlot[];
+  updateSlot: (id: string, updatedFields: Partial<ScheduleSlot>) => void;
+  deleteSlot: (id: string) => void;
+  generateSchedule: () => void;
+  jumbleRooms: () => void;
+  substitutions: SubstitutionRecord[];
+  assignSubstitute: (slotId: string, substituteTeacherId: string, reason?: string) => void;
+  removeSubstitute: (slotId: string) => void;
+  bottlenecks: ConflictBottleneck[];
+  fixBottleneck: (bottleneckId: string) => void;
+  // Historical archives
+  archives: ArchivedSchedule[];
+  selectedArchiveId: string | null;
+  selectArchive: (archiveId: string | null) => void;
+  saveCurrentWeekToArchive: (weekLabel: string) => void;
+  deleteArchive: (archiveId: string) => void;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 
 export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
-  const [subjects, setSubjects] = useState<Subject[]>(defaultSubjects);
-  const [teachers, setTeachers] = useState<Teacher[]>(defaultTeachers);
-  const [classrooms, setClassrooms] = useState<Classroom[]>(defaultClassrooms);
-  const [masterSchedule, setMasterSchedule] = useState<ScheduleSlot[]>([]);
+  const [settings, setSettingsState] = useState<SchoolSettings>(() => storage.getSettings());
+  const [subjects, setSubjectsState] = useState<Subject[]>(() => storage.getSubjects());
+  const [teachers, setTeachersState] = useState<Teacher[]>(() => storage.getTeachers());
+  const [classrooms, setClassroomsState] = useState<Classroom[]>(() => storage.getClassrooms());
+  const [scheduleSlots, setScheduleSlotsState] = useState<ScheduleSlot[]>(() => storage.getSchedule());
   const [substitutions, setSubstitutions] = useState<SubstitutionRecord[]>([]);
-  const [bottlenecks, setBottlenecks] = useState<ConflictBottleneck[]>([]);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [archives, setArchivesState] = useState<ArchivedSchedule[]>(() => storage.getArchives());
+  const [selectedArchiveId, setSelectedArchiveId] = useState<string | null>(null);
 
-  // Initialize schedule on mount
+  // Initialize schedule if empty on first load
   useEffect(() => {
-    const initialSlots = generateMasterSchedule(settings, subjects, teachers, classrooms);
-    setMasterSchedule(initialSlots);
+    if (scheduleSlots.length === 0) {
+      const initial = generateMasterSchedule(subjects, teachers, classrooms, settings);
+      setScheduleSlotsState(initial);
+      storage.saveSchedule(initial);
+    }
   }, []);
 
-  // Update conflict bottlenecks whenever schedule changes
-  useEffect(() => {
-    const detected = scanScheduleBottlenecks(masterSchedule, teachers, classrooms, subjects);
-    setBottlenecks(detected);
-  }, [masterSchedule, teachers, classrooms, subjects]);
-
+  // Update Settings
   const updateSettings = (newSettings: SchoolSettings) => {
-    setSettings(newSettings);
+    setSettingsState(newSettings);
+    storage.saveSettings(newSettings);
   };
 
+  const updateDailyOperatingHours = (day: DayOfWeek, range: DayTimeRange) => {
+    const updatedSettings: SchoolSettings = {
+      ...settings,
+      dailyOperatingHours: {
+        ...settings.dailyOperatingHours,
+        [day]: range,
+      },
+    };
+    setSettingsState(updatedSettings);
+    storage.saveSettings(updatedSettings);
+  };
+
+  // Subjects CRUD
   const addSubject = (sub: Omit<Subject, 'id'>) => {
     const newSub: Subject = { ...sub, id: `sub-${Date.now()}` };
-    setSubjects(prev => [...prev, newSub]);
+    const updated = [...subjects, newSub];
+    setSubjectsState(updated);
+    storage.saveSubjects(updated);
   };
 
-  const updateSubject = (sub: Subject) => {
-    setSubjects(prev => prev.map(s => (s.id === sub.id ? sub : s)));
+  const updateSubject = (id: string, updatedFields: Partial<Subject>) => {
+    const updated = subjects.map(s => (s.id === id ? { ...s, ...updatedFields } : s));
+    setSubjectsState(updated);
+    storage.saveSubjects(updated);
   };
 
   const deleteSubject = (id: string) => {
-    setSubjects(prev => prev.filter(s => s.id !== id));
+    const updated = subjects.filter(s => s.id !== id);
+    setSubjectsState(updated);
+    storage.saveSubjects(updated);
   };
 
-  const addTeacher = (tch: Omit<Teacher, 'id'>) => {
-    const newTch: Teacher = { ...tch, id: `tch-${Date.now()}` };
-    setTeachers(prev => [...prev, newTch]);
+  // Teachers CRUD
+  const addTeacher = (t: Omit<Teacher, 'id'>) => {
+    const newT: Teacher = { ...t, id: `tech-${Date.now()}` };
+    const updated = [...teachers, newT];
+    setTeachersState(updated);
+    storage.saveTeachers(updated);
   };
 
-  const updateTeacher = (tch: Teacher) => {
-    setTeachers(prev => prev.map(t => (t.id === tch.id ? tch : t)));
+  const updateTeacher = (id: string, updatedFields: Partial<Teacher>) => {
+    const updated = teachers.map(t => (t.id === id ? { ...t, ...updatedFields } : t));
+    setTeachersState(updated);
+    storage.saveTeachers(updated);
   };
 
   const deleteTeacher = (id: string) => {
-    setTeachers(prev => prev.filter(t => t.id !== id));
+    const updated = teachers.filter(t => t.id !== id);
+    setTeachersState(updated);
+    storage.saveTeachers(updated);
   };
 
-  const addClassroom = (cls: Omit<Classroom, 'id'>) => {
-    const newCls: Classroom = { ...cls, id: `room-${Date.now()}` };
-    setClassrooms(prev => [...prev, newCls]);
+  // Classrooms CRUD
+  const addClassroom = (c: Omit<Classroom, 'id'>) => {
+    const newC: Classroom = { ...c, id: `room-${Date.now()}` };
+    const updated = [...classrooms, newC];
+    setClassroomsState(updated);
+    storage.saveClassrooms(updated);
   };
 
-  const updateClassroom = (cls: Classroom) => {
-    setClassrooms(prev => prev.map(c => (c.id === cls.id ? cls : c)));
+  const updateClassroom = (id: string, updatedFields: Partial<Classroom>) => {
+    const updated = classrooms.map(c => (c.id === id ? { ...c, ...updatedFields } : c));
+    setClassroomsState(updated);
+    storage.saveClassrooms(updated);
   };
 
   const deleteClassroom = (id: string) => {
-    setClassrooms(prev => prev.filter(c => c.id !== id));
+    const updated = classrooms.filter(c => c.id !== id);
+    setClassroomsState(updated);
+    storage.saveClassrooms(updated);
   };
 
-  const handleGenerateSchedule = () => {
-    const newSchedule = generateMasterSchedule(settings, subjects, teachers, classrooms);
-    setMasterSchedule(newSchedule);
+  // Schedule Slot Management
+  const updateSlot = (id: string, updatedFields: Partial<ScheduleSlot>) => {
+    const updated = scheduleSlots.map(s => (s.id === id ? { ...s, ...updatedFields } : s));
+    setScheduleSlotsState(updated);
+    storage.saveSchedule(updated);
   };
 
-  const updateScheduleSlot = (updatedSlot: ScheduleSlot) => {
-    setMasterSchedule(prev => prev.map(s => (s.id === updatedSlot.id ? updatedSlot : s)));
+  const deleteSlot = (id: string) => {
+    const updated = scheduleSlots.filter(s => s.id !== id);
+    setScheduleSlotsState(updated);
+    storage.saveSchedule(updated);
   };
 
-  const applySubstitution = (slotId: string, substituteTeacherId: string, reason = 'Emergency absence') => {
-    setMasterSchedule(prev =>
-      prev.map(slot => {
-        if (slot.id === slotId) {
-          const originalTeacherId = slot.originalTeacherId || slot.teacherId;
-          const subRecord: SubstitutionRecord = {
-            id: `subrec-${Date.now()}`,
-            slotId,
-            originalTeacherId,
-            substituteTeacherId,
-            date: new Date().toISOString().split('T')[0],
-            reason,
-            status: 'active'
-          };
-          setSubstitutions(sPrev => [subRecord, ...sPrev]);
-          return {
-            ...slot,
-            originalTeacherId,
-            substituteTeacherId,
-            isSubstituted: true
-          };
-        }
-        return slot;
-      })
-    );
+  const generateSchedule = () => {
+    const newSchedule = generateMasterSchedule(subjects, teachers, classrooms, settings);
+    setScheduleSlotsState(newSchedule);
+    storage.saveSchedule(newSchedule);
+    setSelectedArchiveId(null);
   };
 
-  const resolveBottleneck = (bottleneckId: string) => {
-    const btn = bottlenecks.find(b => b.id === bottleneckId);
-    if (!btn) return;
-    const resolvedSlots = autoResolveBottleneck(btn, masterSchedule, teachers, classrooms);
-    setMasterSchedule(resolvedSlots);
+  const jumbleRooms = () => {
+    const jumbled = jumbleRoomAssignments(scheduleSlots, classrooms);
+    setScheduleSlotsState(jumbled);
+    storage.saveSchedule(jumbled);
   };
 
-  const checkTeacherConflict = (teacherId: string, day: string, startTime: string, excludeSlotId?: string): boolean => {
-    return masterSchedule.some(slot => {
-      if (excludeSlotId && slot.id === excludeSlotId) return false;
-      const activeTeacher = slot.substituteTeacherId || slot.teacherId;
-      return activeTeacher === teacherId && slot.day === day && slot.startTime === startTime;
+  // Substitution logic
+  const assignSubstitute = (slotId: string, substituteTeacherId: string, reason = 'Emergency Absence') => {
+    const slot = scheduleSlots.find(s => s.id === slotId);
+    if (!slot) return;
+
+    const originalTeacherId = slot.substituteTeacherId || slot.teacherId;
+
+    const updated = scheduleSlots.map(s => {
+      if (s.id === slotId) {
+        return {
+          ...s,
+          substituteTeacherId,
+          isSubstituted: true,
+          originalTeacherId: s.originalTeacherId || s.teacherId,
+        };
+      }
+      return s;
     });
+
+    const newSubRecord: SubstitutionRecord = {
+      id: `subrec-${Date.now()}`,
+      slotId,
+      originalTeacherId,
+      substituteTeacherId,
+      date: new Date().toISOString().split('T')[0],
+      reason,
+      status: 'active',
+    };
+
+    setScheduleSlotsState(updated);
+    storage.saveSchedule(updated);
+    setSubstitutions(prev => [newSubRecord, ...prev]);
+  };
+
+  const removeSubstitute = (slotId: string) => {
+    const updated = scheduleSlots.map(s => {
+      if (s.id === slotId) {
+        return {
+          ...s,
+          substituteTeacherId: undefined,
+          isSubstituted: false,
+        };
+      }
+      return s;
+    });
+
+    setScheduleSlotsState(updated);
+    storage.saveSchedule(updated);
+    setSubstitutions(prev => prev.filter(sub => sub.slotId !== slotId));
+  };
+
+  // Bottlenecks & Auto-fix
+  const activeSlots = selectedArchiveId
+    ? archives.find(a => a.id === selectedArchiveId)?.slots || scheduleSlots
+    : scheduleSlots;
+
+  const bottlenecks = scanScheduleBottlenecks(activeSlots, teachers, classrooms, subjects);
+
+  const fixBottleneck = (bottleneckId: string) => {
+    const b = bottlenecks.find(btn => btn.id === bottleneckId);
+    if (!b) return;
+
+    const resolved = autoResolveBottleneck(b, activeSlots, teachers, classrooms);
+    if (!selectedArchiveId) {
+      setScheduleSlotsState(resolved);
+      storage.saveSchedule(resolved);
+    }
+  };
+
+  // Historical archives
+  const selectArchive = (archiveId: string | null) => {
+    setSelectedArchiveId(archiveId);
+  };
+
+  const saveCurrentWeekToArchive = (weekLabel: string) => {
+    const newArchive: ArchivedSchedule = {
+      id: `arch-${Date.now()}`,
+      name: `Schedule - ${weekLabel}`,
+      weekLabel,
+      createdAt: new Date().toLocaleDateString(),
+      slots: [...scheduleSlots],
+    };
+    const updatedArchives = [newArchive, ...archives];
+    setArchivesState(updatedArchives);
+    storage.saveArchives(updatedArchives);
+  };
+
+  const deleteArchive = (archiveId: string) => {
+    const updated = archives.filter(a => a.id !== archiveId);
+    setArchivesState(updated);
+    storage.saveArchives(updated);
+    if (selectedArchiveId === archiveId) {
+      setSelectedArchiveId(null);
+    }
   };
 
   return (
     <ScheduleContext.Provider
       value={{
         settings,
-        subjects,
-        teachers,
-        classrooms,
-        masterSchedule,
-        substitutions,
-        bottlenecks,
-        activeTab,
-        setActiveTab,
         updateSettings,
+        updateDailyOperatingHours,
+        subjects,
         addSubject,
         updateSubject,
         deleteSubject,
+        teachers,
         addTeacher,
         updateTeacher,
         deleteTeacher,
+        classrooms,
         addClassroom,
         updateClassroom,
         deleteClassroom,
-        handleGenerateSchedule,
-        updateScheduleSlot,
-        applySubstitution,
-        resolveBottleneck,
-        checkTeacherConflict
+        scheduleSlots: activeSlots,
+        updateSlot,
+        deleteSlot,
+        generateSchedule,
+        jumbleRooms,
+        substitutions,
+        assignSubstitute,
+        removeSubstitute,
+        bottlenecks,
+        fixBottleneck,
+        archives,
+        selectedArchiveId,
+        selectArchive,
+        saveCurrentWeekToArchive,
+        deleteArchive,
       }}
     >
       {children}

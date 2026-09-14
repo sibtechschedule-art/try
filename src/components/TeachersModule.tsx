@@ -1,79 +1,51 @@
 import React, { useState } from 'react';
 import { useSchedule } from '../context/ScheduleContext';
-import type { Teacher, DayOfWeek } from '../types';
-import { Users, Plus, Trash2, Edit3, Save, X, Activity, MapPin } from 'lucide-react';
+import type { DayOfWeek, DayTimeRange } from '../types';
+import { Users, Plus, Edit2, Trash2, Clock, BookOpen, Check, X, ShieldAlert } from 'lucide-react';
 
-const ALL_DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const STANDARD_TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00'];
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export const TeachersModule: React.FC = () => {
-  const { teachers, subjects, masterSchedule, addTeacher, updateTeacher, deleteTeacher } = useSchedule();
-
-  const [isAdding, setIsAdding] = useState(false);
+  const { teachers, subjects, scheduleSlots, addTeacher, updateTeacher, deleteTeacher } = useSchedule();
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form State
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [qualifiedSubjectIds, setQualifiedSubjectIds] = useState<string[]>([]);
-  const [maxWeeklyHours, setMaxWeeklyHours] = useState(20);
-  const [buildingLocation, setBuildingLocation] = useState('Science Wing - Bldg A');
-  const [blockedDays, setBlockedDays] = useState<DayOfWeek[]>([]);
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>(STANDARD_TIME_SLOTS);
+  const [maxWeeklyHours, setMaxWeeklyHours] = useState(18);
+  const [dailyAvailability, setDailyAvailability] = useState<Record<DayOfWeek, DayTimeRange>>({
+    Monday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    Tuesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+  });
 
   const resetForm = () => {
     setName('');
-    setEmail('');
     setQualifiedSubjectIds([]);
-    setMaxWeeklyHours(20);
-    setBuildingLocation('Science Wing - Bldg A');
-    setBlockedDays([]);
-    setAvailableTimeSlots(STANDARD_TIME_SLOTS);
-    setIsAdding(false);
+    setMaxWeeklyHours(18);
+    setDailyAvailability({
+      Monday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Tuesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    });
     setEditingId(null);
   };
 
-  const handleStartEdit = (t: Teacher) => {
-    setEditingId(t.id);
-    setName(t.name);
-    setEmail(t.email);
-    setQualifiedSubjectIds(t.qualifiedSubjectIds);
-    setMaxWeeklyHours(t.maxWeeklyHours);
-    setBuildingLocation(t.buildingLocation);
-    setBlockedDays(t.blockedDays);
-    setAvailableTimeSlots(t.availableTimeSlots.length > 0 ? t.availableTimeSlots : STANDARD_TIME_SLOTS);
-    setIsAdding(false);
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-
-    if (editingId) {
-      updateTeacher({
-        id: editingId,
-        name,
-        email,
-        qualifiedSubjectIds,
-        maxWeeklyHours,
-        buildingLocation,
-        blockedDays,
-        availableTimeSlots,
-        avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`
-      });
-    } else {
-      addTeacher({
-        name,
-        email,
-        qualifiedSubjectIds,
-        maxWeeklyHours,
-        buildingLocation,
-        blockedDays,
-        availableTimeSlots,
-        avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`
-      });
-    }
-    resetForm();
+  const handleEdit = (teacher: typeof teachers[0]) => {
+    setEditingId(teacher.id);
+    setName(teacher.name);
+    setQualifiedSubjectIds(teacher.qualifiedSubjectIds);
+    setMaxWeeklyHours(teacher.maxWeeklyHours);
+    setDailyAvailability(teacher.dailyAvailability || {
+      Monday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Tuesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    });
   };
 
   const toggleSubject = (subId: string) => {
@@ -82,240 +54,304 @@ export const TeachersModule: React.FC = () => {
     );
   };
 
-  const toggleBlockedDay = (day: DayOfWeek) => {
-    setBlockedDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
+  const updateDayAvailability = (day: DayOfWeek, field: keyof DayTimeRange, value: any) => {
+    setDailyAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value,
+      },
+    }));
   };
 
-  const toggleTimeSlot = (slot: string) => {
-    setAvailableTimeSlots(prev =>
-      prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]
-    );
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    if (editingId) {
+      updateTeacher(editingId, {
+        name,
+        qualifiedSubjectIds,
+        maxWeeklyHours: Number(maxWeeklyHours),
+        dailyAvailability,
+      });
+    } else {
+      addTeacher({
+        name,
+        qualifiedSubjectIds,
+        maxWeeklyHours: Number(maxWeeklyHours),
+        dailyAvailability,
+      });
+    }
+    resetForm();
   };
 
-  // Helper to calculate workload percentage
-  const getTeacherWorkload = (teacherId: string, maxHours: number) => {
-    const assignedSlotsCount = masterSchedule.filter(
+  // Calculate actual assigned hours per teacher
+  const getTeacherAssignedHours = (teacherId: string) => {
+    const teacherSlots = scheduleSlots.filter(
       s => (s.substituteTeacherId || s.teacherId) === teacherId
-    ).length;
-    const percentage = Math.min(100, Math.round((assignedSlotsCount / maxHours) * 100));
-    return { assignedSlotsCount, percentage };
+    );
+
+    let totalMinutes = 0;
+    teacherSlots.forEach(slot => {
+      const [startH, startM] = slot.startTime.split(':').map(Number);
+      const [endH, endM] = slot.endTime.split(':').map(Number);
+      totalMinutes += (endH * 60 + endM) - (startH * 60 + startM);
+    });
+
+    return Math.round((totalMinutes / 60) * 10) / 10;
   };
 
   return (
-    <div className="module-container">
-      <div className="module-header">
-        <div>
-          <h2><Users className="icon" /> Teachers & Faculty Module</h2>
-          <p>Manage teacher profiles, subject qualifications, building locations, availability windows, and track workload balance.</p>
-        </div>
-        {!isAdding && !editingId && (
-          <button className="btn-primary" onClick={() => setIsAdding(true)}>
-            <Plus className="icon-sm" /> Add New Teacher
-          </button>
-        )}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Users className="w-7 h-7 text-indigo-400" />
+          Faculty & Teachers Module
+        </h1>
+        <p className="text-slate-400 text-sm mt-1">
+          Manage faculty profiles, qualified subjects, maximum load limits, and flexible day-specific availability windows.
+        </p>
       </div>
 
-      {/* Add / Edit Form Panel */}
-      {(isAdding || editingId) && (
-        <form className="crud-form-panel" onSubmit={handleSave}>
-          <h3>{editingId ? 'Edit Teacher Profile' : 'Add New Teacher'}</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Form Column */}
+        <div className="lg:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-xl p-6 backdrop-blur-sm shadow-xl h-fit">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            {editingId ? <Edit2 className="w-5 h-5 text-indigo-400" /> : <Plus className="w-5 h-5 text-emerald-400" />}
+            {editingId ? 'Edit Faculty Member' : 'Add New Faculty Member'}
+          </h2>
 
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label>Full Name</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Teacher Full Name</label>
               <input
                 type="text"
                 required
+                placeholder="e.g. Dr. Sarah Jenkins"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Dr. Eleanor Vance"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm"
               />
             </div>
 
-            <div className="form-group">
-              <label>Email Address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="e.g. e.vance@school.edu"
-              />
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label>Building / Campus Base Location</label>
-              <input
-                type="text"
-                value={buildingLocation}
-                onChange={e => setBuildingLocation(e.target.value)}
-                placeholder="e.g. Science Wing - Bldg A"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Maximum Weekly Teaching Hours (Capacity)</label>
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Max Weekly Hours Limit</label>
               <input
                 type="number"
-                min="5"
+                min="1"
                 max="40"
+                required
                 value={maxWeeklyHours}
-                onChange={e => setMaxWeeklyHours(parseInt(e.target.value) || 20)}
+                onChange={e => setMaxWeeklyHours(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
               />
             </div>
-          </div>
 
-          {/* Qualified Subjects Selection */}
-          <div className="form-group">
-            <label>Qualified Subjects to Teach</label>
-            <div className="checkbox-tags-row">
-              {subjects.map(sub => (
+            {/* Qualified Subjects Checklist */}
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-2">Qualified Subjects</label>
+              <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto bg-slate-900/60 border border-slate-700/80 rounded-lg p-2">
+                {subjects.map(sub => {
+                  const isChecked = qualifiedSubjectIds.includes(sub.id);
+                  return (
+                    <label
+                      key={sub.id}
+                      className={`flex items-center justify-between p-2 rounded cursor-pointer text-xs transition ${
+                        isChecked ? 'bg-indigo-950/80 border border-indigo-700 text-white' : 'hover:bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSubject(sub.id)}
+                          className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>{sub.name}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono">{sub.code}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Flexible Daily Availability Configurator */}
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-2 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                Flexible Daily Hours & Availability
+              </label>
+
+              <div className="space-y-2 bg-slate-900/60 border border-slate-700/80 rounded-lg p-3">
+                {DAYS_OF_WEEK.map(day => {
+                  const dayAvail = dailyAvailability[day] || { enabled: true, startTime: '07:00', endTime: '17:00' };
+                  return (
+                    <div key={day} className="flex items-center justify-between gap-2 text-xs">
+                      <label className="flex items-center gap-2 min-w-[90px] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dayAvail.enabled}
+                          onChange={e => updateDayAvailability(day, 'enabled', e.target.checked)}
+                          className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className={dayAvail.enabled ? 'text-slate-200 font-medium' : 'text-slate-500 line-through'}>
+                          {day}
+                        </span>
+                      </label>
+
+                      {dayAvail.enabled ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="time"
+                            value={dayAvail.startTime}
+                            onChange={e => updateDayAvailability(day, 'startTime', e.target.value)}
+                            className="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white text-[11px]"
+                          />
+                          <span className="text-slate-500">-</span>
+                          <input
+                            type="time"
+                            value={dayAvail.endTime}
+                            onChange={e => updateDayAvailability(day, 'endTime', e.target.value)}
+                            className="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white text-[11px]"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-500 italic">Unavailable</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-2"
+              >
+                {editingId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {editingId ? 'Save Faculty Member' : 'Add Faculty Member'}
+              </button>
+              {editingId && (
                 <button
                   type="button"
-                  key={sub.id}
-                  className={`tag-toggle-btn ${qualifiedSubjectIds.includes(sub.id) ? 'active' : ''}`}
-                  onClick={() => toggleSubject(sub.id)}
+                  onClick={resetForm}
+                  className="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-3 rounded-lg text-sm flex items-center justify-center"
                 >
-                  {sub.name} ({sub.gradeLevel})
+                  <X className="w-4 h-4" />
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Availability / Blocked Days Selection */}
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label>Blocked Out Days (Unavailable)</label>
-              <div className="checkbox-tags-row">
-                {ALL_DAYS.map(day => (
-                  <button
-                    type="button"
-                    key={day}
-                    className={`tag-toggle-btn danger ${blockedDays.includes(day) ? 'active' : ''}`}
-                    onClick={() => toggleBlockedDay(day)}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Available Daily Hours</label>
-              <div className="checkbox-tags-row">
-                {STANDARD_TIME_SLOTS.map(slot => (
-                  <button
-                    type="button"
-                    key={slot}
-                    className={`tag-toggle-btn ${availableTimeSlots.includes(slot) ? 'active' : ''}`}
-                    onClick={() => toggleTimeSlot(slot)}
-                  >
-                    {slot}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="form-actions-row">
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              <X className="icon-sm" /> Cancel
-            </button>
-            <button type="submit" className="btn-primary">
-              <Save className="icon-sm" /> {editingId ? 'Save Changes' : 'Create Teacher'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Teachers List & Workload Balance Indicator */}
-      <div className="teachers-cards-grid">
-        {teachers.map(tch => {
-          const { assignedSlotsCount, percentage } = getTeacherWorkload(tch.id, tch.maxWeeklyHours);
-          const qualifiedSubNames = subjects
-            .filter(s => tch.qualifiedSubjectIds.includes(s.id))
-            .map(s => s.name);
-
-          let loadColorClass = 'green';
-          if (percentage > 85) loadColorClass = 'red';
-          else if (percentage > 65) loadColorClass = 'amber';
-
-          return (
-            <div key={tch.id} className="teacher-card">
-              <div className="teacher-header">
-                <img
-                  src={tch.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                  alt={tch.name}
-                  className="teacher-avatar-lg"
-                />
-                <div className="teacher-details">
-                  <h3>{tch.name}</h3>
-                  <span className="teacher-email">{tch.email}</span>
-                  <div className="teacher-location">
-                    <MapPin className="icon-xs" /> {tch.buildingLocation}
-                  </div>
-                </div>
-                <div className="card-top-actions">
-                  <button className="btn-icon" onClick={() => handleStartEdit(tch)} title="Edit">
-                    <Edit3 className="icon-xs" />
-                  </button>
-                  <button className="btn-icon danger" onClick={() => deleteTeacher(tch.id)} title="Delete">
-                    <Trash2 className="icon-xs" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Workload Balance Indicator Progress Bar */}
-              <div className="workload-balance-box">
-                <div className="workload-header">
-                  <span className="workload-title"><Activity className="icon-xs" /> Weekly Workload Load</span>
-                  <span className={`workload-value ${loadColorClass}`}>
-                    {assignedSlotsCount} / {tch.maxWeeklyHours} hrs ({percentage}%)
-                  </span>
-                </div>
-                <div className="progress-bar-bg">
-                  <div
-                    className={`progress-bar-fill ${loadColorClass}`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                {percentage > 90 && (
-                  <span className="workload-warning">⚠️ Near Maximum Capacity Limit!</span>
-                )}
-              </div>
-
-              {/* Qualified Subjects Badges */}
-              <div className="qualifications-box">
-                <span className="section-label">Qualified Subjects:</span>
-                <div className="badge-row">
-                  {qualifiedSubNames.length === 0 ? (
-                    <span className="text-muted">None specified</span>
-                  ) : (
-                    qualifiedSubNames.map((subName, i) => (
-                      <span key={i} className="badge-pill blue">{subName}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Blocked Days */}
-              {tch.blockedDays.length > 0 && (
-                <div className="blocked-days-box">
-                  <span className="section-label">Blocked Days:</span>
-                  <div className="badge-row">
-                    {tch.blockedDays.map(day => (
-                      <span key={day} className="badge-pill red">{day}</span>
-                    ))}
-                  </div>
-                </div>
               )}
             </div>
-          );
-        })}
+          </form>
+        </div>
+
+        {/* Faculty List & Workload Balance Indicator */}
+        <div className="lg:col-span-7 space-y-4">
+          {teachers.map(t => {
+            const assignedHours = getTeacherAssignedHours(t.id);
+            const loadPercentage = Math.min(Math.round((assignedHours / t.maxWeeklyHours) * 100), 100);
+            const isOverloaded = assignedHours > t.maxWeeklyHours;
+
+            return (
+              <div
+                key={t.id}
+                className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-5 hover:border-slate-600 transition shadow-lg"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={t.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150'}
+                      alt={t.name}
+                      className="w-11 h-11 rounded-full object-cover border-2 border-indigo-500/40"
+                    />
+                    <div>
+                      <h3 className="text-base font-semibold text-white">{t.name}</h3>
+                      <p className="text-xs text-slate-400">
+                        Max Capacity: <strong className="text-slate-200">{t.maxWeeklyHours} hrs/week</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEdit(t)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-700 rounded-lg transition"
+                      title="Edit Teacher"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => deleteTeacher(t.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 rounded-lg transition"
+                      title="Delete Teacher"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Workload Balance Indicator Bar */}
+                <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-700/50 mb-4">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      {isOverloaded && <ShieldAlert className="w-3.5 h-3.5 text-amber-400 animate-pulse" />}
+                      Workload Balance Status
+                    </span>
+                    <span className={`font-mono font-bold ${isOverloaded ? 'text-amber-400' : 'text-slate-300'}`}>
+                      {assignedHours} / {t.maxWeeklyHours} hrs ({loadPercentage}%)
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-2.5 rounded-full transition-all duration-500 ${
+                        isOverloaded
+                          ? 'bg-amber-500'
+                          : loadPercentage > 85
+                          ? 'bg-indigo-500'
+                          : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${loadPercentage}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Qualified Subjects Badges */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <BookOpen className="w-3 h-3 text-indigo-400" /> Qualified Subjects
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {t.qualifiedSubjectIds.map(subId => {
+                      const sub = subjects.find(s => s.id === subId);
+                      if (!sub) return null;
+                      return (
+                        <span
+                          key={sub.id}
+                          className="px-2.5 py-0.5 rounded text-[11px] font-medium text-white shadow-sm"
+                          style={{ backgroundColor: sub.color }}
+                        >
+                          {sub.code} - {sub.name}
+                        </span>
+                      );
+                    })}
+                    {t.qualifiedSubjectIds.length === 0 && (
+                      <span className="text-xs text-slate-500 italic">No subjects assigned</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {teachers.length === 0 && (
+            <div className="bg-slate-800/40 border border-dashed border-slate-700 rounded-xl p-8 text-center text-slate-400">
+              No faculty members added yet. Add your first teacher using the form.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
