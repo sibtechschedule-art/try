@@ -48,7 +48,7 @@ export const StudentPortal: React.FC = () => {
 
         {/* Day Selector */}
         <div className="flex items-center justify-center gap-2 pt-2">
-          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => (
+          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
             <button
               key={d}
               onClick={() => setSelectedDay(d)}

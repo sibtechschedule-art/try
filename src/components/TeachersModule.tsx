@@ -3,7 +3,7 @@ import { useSchedule } from '../context/ScheduleContext';
 import type { DayOfWeek, DayTimeRange } from '../types';
 import { Users, Plus, Edit2, Trash2, Clock, BookOpen, Check, X, ShieldAlert } from 'lucide-react';
 
-const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const TeachersModule: React.FC = () => {
   const { teachers, subjects, scheduleSlots, addTeacher, updateTeacher, deleteTeacher } = useSchedule();
@@ -18,6 +18,7 @@ export const TeachersModule: React.FC = () => {
     Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
     Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
     Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+    Saturday: { enabled: true, startTime: '07:00', endTime: '17:00' },
   });
 
   const resetForm = () => {
@@ -30,6 +31,7 @@ export const TeachersModule: React.FC = () => {
       Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
       Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
       Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Saturday: { enabled: true, startTime: '07:00', endTime: '17:00' },
     });
     setEditingId(null);
   };
@@ -45,6 +47,7 @@ export const TeachersModule: React.FC = () => {
       Wednesday: { enabled: true, startTime: '07:00', endTime: '17:00' },
       Thursday: { enabled: true, startTime: '07:00', endTime: '17:00' },
       Friday: { enabled: true, startTime: '07:00', endTime: '17:00' },
+      Saturday: { enabled: true, startTime: '07:00', endTime: '17:00' },
     });
   };
 

@@ -66,7 +66,7 @@ export function scanScheduleBottlenecks(
 
   // 2. Detect Heavy Workload (Teachers teaching > 4 sessions in a single day)
   teachers.forEach(teacher => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
     days.forEach(day => {
       const teacherDaySlots = slots
         .filter(s => (s.substituteTeacherId || s.teacherId) === teacher.id && s.day === day);
