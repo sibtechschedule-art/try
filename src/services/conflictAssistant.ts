@@ -48,7 +48,7 @@ export function scanScheduleBottlenecks(
     if (matchedSlots.length > 1) {
       const roomId = key.split('_')[0];
       const room = classrooms.find(r => r.id === roomId);
-      const roomName = room ? `${room.name} (${room.roomNumber})` : 'Classroom';
+      const roomName = room ? room.roomNumber : 'Classroom';
       bottlenecks.push({
         id: `btn-r-double-${key}`,
         type: 'room_double_booked',
@@ -64,80 +64,26 @@ export function scanScheduleBottlenecks(
     }
   });
 
-  // 2. Detect Heavy Workload (Teachers teaching > 4 back-to-back periods in a single day)
+  // 2. Detect Heavy Workload (Teachers teaching > 4 sessions in a single day)
   teachers.forEach(teacher => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
     days.forEach(day => {
       const teacherDaySlots = slots
-        .filter(s => (s.substituteTeacherId || s.teacherId) === teacher.id && s.day === day)
-        .sort((a, b) => a.periodIndex - b.periodIndex);
+        .filter(s => (s.substituteTeacherId || s.teacherId) === teacher.id && s.day === day);
 
-      let consecutive = 1;
-      let consecutiveSlots: ScheduleSlot[] = [];
-
-      for (let i = 0; i < teacherDaySlots.length; i++) {
-        if (i === 0) {
-          consecutiveSlots = [teacherDaySlots[i]];
-          continue;
-        }
-
-        if (teacherDaySlots[i].periodIndex === teacherDaySlots[i - 1].periodIndex + 1) {
-          consecutive++;
-          consecutiveSlots.push(teacherDaySlots[i]);
-          if (consecutive >= 4) {
-            bottlenecks.push({
-              id: `btn-heavy-${teacher.id}-${day}-${teacherDaySlots[i].periodIndex}`,
-              type: 'heavy_workload',
-              severity: 'medium',
-              title: `Heavy Teaching Load Bottleneck: ${teacher.name}`,
-              description: `${teacher.name} has ${consecutive} consecutive teaching hours on ${day} without a break.`,
-              affectedSlotIds: consecutiveSlots.map(s => s.id),
-              suggestedFix: {
-                actionType: 'reassign_teacher',
-                description: `Assign a substitute teacher for period ${teacherDaySlots[i].periodIndex} to grant a rest window.`
-              }
-            });
-            break;
+      if (teacherDaySlots.length >= 4) {
+        bottlenecks.push({
+          id: `btn-heavy-${teacher.id}-${day}`,
+          type: 'heavy_workload',
+          severity: 'medium',
+          title: `Heavy Daily Workload: ${teacher.name}`,
+          description: `${teacher.name} has ${teacherDaySlots.length} sessions scheduled on ${day}.`,
+          affectedSlotIds: teacherDaySlots.map(s => s.id),
+          suggestedFix: {
+            actionType: 'reassign_teacher',
+            description: `Assign a substitute teacher for one session on ${day} to grant a rest window.`
           }
-        } else {
-          consecutive = 1;
-          consecutiveSlots = [teacherDaySlots[i]];
-        }
-      }
-    });
-  });
-
-  // 3. Detect Distant Building Switches (Teacher moving between different buildings in consecutive periods)
-  teachers.forEach(teacher => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
-    days.forEach(day => {
-      const teacherDaySlots = slots
-        .filter(s => (s.substituteTeacherId || s.teacherId) === teacher.id && s.day === day)
-        .sort((a, b) => a.periodIndex - b.periodIndex);
-
-      for (let i = 0; i < teacherDaySlots.length - 1; i++) {
-        const currentSlot = teacherDaySlots[i];
-        const nextSlot = teacherDaySlots[i + 1];
-
-        if (nextSlot.periodIndex === currentSlot.periodIndex + 1) {
-          const room1 = classrooms.find(r => r.id === currentSlot.classroomId);
-          const room2 = classrooms.find(r => r.id === nextSlot.classroomId);
-
-          if (room1 && room2 && room1.building !== room2.building) {
-            bottlenecks.push({
-              id: `btn-distant-${teacher.id}-${day}-${currentSlot.periodIndex}`,
-              type: 'distant_building',
-              severity: 'low',
-              title: `Distant Campus Transit Bottleneck: ${teacher.name}`,
-              description: `${teacher.name} must travel between ${room1.building} (${room1.roomNumber}) and ${room2.building} (${room2.roomNumber}) in consecutive periods on ${day}.`,
-              affectedSlotIds: [currentSlot.id, nextSlot.id],
-              suggestedFix: {
-                actionType: 'change_room',
-                description: `Relocate period ${nextSlot.periodIndex} to a vacant room in ${room1.building}.`
-              }
-            });
-          }
-        }
+        });
       }
     });
   });
@@ -161,13 +107,12 @@ export function autoResolveBottleneck(
 
   if (slotIndex === -1) return slots;
 
-  if (bottleneck.type === 'teacher_double_booked' || bottleneck.type === 'heavy_workload') {
+  if (bottleneck.type === 'teacher_double_booked' || bottleneck.type === 'heavy_workload' || bottleneck.type === 'unavailable_teacher') {
     // Find free teacher qualified for target slot's subject
     const currentTeacherId = targetSlot.substituteTeacherId || targetSlot.teacherId;
     const otherTeachers = teachers.filter(t => t.id !== currentTeacherId);
 
     const availableSubstitute = otherTeachers.find(t => {
-      // Check if booked at this day and startTime
       const isBooked = updatedSlots.some(s =>
         (s.substituteTeacherId || s.teacherId) === t.id &&
         s.day === targetSlot.day &&
@@ -183,8 +128,8 @@ export function autoResolveBottleneck(
         isSubstituted: true
       };
     }
-  } else if (bottleneck.type === 'distant_building' || bottleneck.type === 'room_double_booked') {
-    // Find available classroom in same building if distant, or any free classroom if room double booked
+  } else if (bottleneck.type === 'room_double_booked') {
+    // Find free classroom
     const freeRoom = classrooms.find(r => {
       const isRoomBooked = updatedSlots.some(s =>
         s.classroomId === r.id &&

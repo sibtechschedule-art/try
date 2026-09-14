@@ -1,135 +1,135 @@
 import React, { useState } from 'react';
 import { useSchedule } from '../context/ScheduleContext';
-import { Download, Calendar, FileSpreadsheet, Users, CheckCircle } from 'lucide-react';
+import { Download, Calendar, FileText, CheckCircle2 } from 'lucide-react';
 
 export const ExportHub: React.FC = () => {
-  const { masterSchedule, teachers, subjects, classrooms } = useSchedule();
-
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.id || '');
+  const { scheduleSlots, subjects, teachers, classrooms } = useSchedule();
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
-  // Generate iCal (.ics) string for a teacher
-  const generateICS = (teacherId: string) => {
-    const teacher = teachers.find(t => t.id === teacherId);
-    if (!teacher) return;
-
-    const teacherSlots = masterSchedule.filter(
-      s => (s.substituteTeacherId || s.teacherId) === teacherId
-    );
-
+  const generateICS = () => {
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//School Master Schedule Engine//EN',
-      `X-WR-CALNAME:Teaching Schedule - ${teacher.name}`
+      'PRODID:-//Schedulify//Master College Timetable//EN',
     ];
 
-    teacherSlots.forEach(slot => {
-      const sub = subjects.find(s => s.id === slot.subjectId);
+    scheduleSlots.forEach(slot => {
+      const subject = subjects.find(s => s.id === slot.subjectId);
+      const teacher = teachers.find(t => t.id === (slot.substituteTeacherId || slot.teacherId));
       const room = classrooms.find(r => r.id === slot.classroomId);
 
       icsContent.push('BEGIN:VEVENT');
-      icsContent.push(`SUMMARY:${sub?.name || 'Class'} (${slot.sectionCode})`);
-      icsContent.push(`DESCRIPTION:Teaching ${sub?.name} in room ${room?.roomNumber}. Grade: ${slot.gradeLevel}`);
-      icsContent.push(`LOCATION:${room?.name || 'Classroom'}, ${room?.building || 'Campus'}`);
+      icsContent.push(`SUMMARY:${subject?.code || 'CLASS'} - ${subject?.name || 'Session'}`);
+      icsContent.push(`DESCRIPTION:Instructor: ${teacher?.name || 'TBD'} | Section: ${slot.sectionCode}`);
+      icsContent.push(`LOCATION:${room?.roomNumber || 'Room TBD'}`);
       icsContent.push('END:VEVENT');
     });
 
     icsContent.push('END:VCALENDAR');
 
-    const blob = new Blob([icsContent.join('\n')], { type: 'text/calendar;charset=utf-8;' });
+    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${teacher.name.replace(/\s+/g, '_')}_Schedule.ics`);
+    link.setAttribute('download', 'schedulify_master_timetable.ics');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    setDownloadSuccess(`Exported Google Calendar (.ics) file for ${teacher.name}!`);
-    setTimeout(() => setDownloadSuccess(null), 4000);
+    setDownloadSuccess('Exported Google Calendar (.ics) file successfully!');
+    setTimeout(() => setDownloadSuccess(null), 3000);
   };
 
-  // Export CSV Summary for Payroll & Administration
-  const exportCSVSummary = () => {
-    let csvContent = 'Teacher Name,Email,Assigned Periods Count,Total Teaching Hours,Primary Building\n';
+  const generateCSV = () => {
+    const headers = ['Day', 'Start Time', 'End Time', 'Subject Code', 'Subject Name', 'Instructor', 'Classroom', 'Section Code'];
+    const rows = scheduleSlots.map(slot => {
+      const subject = subjects.find(s => s.id === slot.subjectId);
+      const teacher = teachers.find(t => t.id === (slot.substituteTeacherId || slot.teacherId));
+      const room = classrooms.find(r => r.id === slot.classroomId);
 
-    teachers.forEach(teacher => {
-      const assignedSlots = masterSchedule.filter(
-        s => (s.substituteTeacherId || s.teacherId) === teacher.id
-      );
-      csvContent += `"${teacher.name}","${teacher.email}",${assignedSlots.length},${assignedSlots.length} hrs,"${teacher.buildingLocation}"\n`;
+      return [
+        slot.day,
+        slot.startTime,
+        slot.endTime,
+        `"${subject?.code || ''}"`,
+        `"${subject?.name || ''}"`,
+        `"${teacher?.name || ''}"`,
+        `"${room?.roomNumber || ''}"`,
+        `"${slot.sectionCode || ''}"`,
+      ].join(',');
     });
 
+    const csvContent = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'Faculty_Teaching_Workload_Summary.csv');
+    link.setAttribute('download', 'schedulify_timetable_summary.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    setDownloadSuccess('Exported clean CSV Summary for payroll & administrative archiving!');
-    setTimeout(() => setDownloadSuccess(null), 4000);
+    setDownloadSuccess('Downloaded Administrative CSV Summary!');
+    setTimeout(() => setDownloadSuccess(null), 3000);
   };
 
   return (
-    <div className="export-hub-container">
-      <div className="export-header">
-        <div>
-          <h2><Download className="icon" /> Export & Integration Hub</h2>
-          <p>Export teacher schedules to Google Calendar (.ics files) or download CSV workload summaries for payroll and admin archiving.</p>
-        </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold text-blue-950 flex items-center gap-2">
+          <Download className="w-7 h-7 text-blue-900" />
+          SIBTECH Export & Integration Hub
+        </h1>
+        <p className="text-slate-600 text-sm mt-1">
+          Export master schedules to Google Calendar (.ics) or download clean CSV summaries for payroll and archiving.
+        </p>
       </div>
 
       {downloadSuccess && (
-        <div className="toast-success">
-          <CheckCircle className="icon-sm" /> {downloadSuccess}
+        <div className="bg-emerald-100 border border-emerald-400 rounded-xl p-4 flex items-center gap-3 text-emerald-900 text-xs font-bold shadow-md">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <span>{downloadSuccess}</span>
         </div>
       )}
 
-      <div className="export-grid-2">
-        {/* Card 1: Google Calendar .ICS Export */}
-        <div className="export-card">
-          <div className="card-icon-header blue">
-            <Calendar className="icon-lg" />
-          </div>
-          <h3>Google Calendar Sync (.ics File)</h3>
-          <p>Generate downloadable iCalendar (.ics) files for individual faculty members to import directly into Google Calendar, Outlook, or Apple Calendar.</p>
-
-          <div className="form-group">
-            <label><Users className="icon-xs" /> Select Educator / Teacher</label>
-            <select
-              value={selectedTeacherId}
-              onChange={e => setSelectedTeacherId(e.target.value)}
-            >
-              {teachers.map(t => (
-                <option key={t.id} value={t.id}>{t.name} ({t.buildingLocation})</option>
-              ))}
-            </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ICS Calendar Export */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="p-3 bg-blue-50 rounded-xl text-blue-900 w-fit mb-4">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Google Calendar Export (.ics)</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Generate an iCalendar file compatible with Google Calendar, Apple Calendar, and Outlook to sync faculty timetables across mobile devices.
+            </p>
           </div>
 
-          <button onClick={() => generateICS(selectedTeacherId)} className="btn-primary w-full">
-            <Download className="icon-sm" /> Download Teacher iCal (.ics)
+          <button
+            onClick={generateICS}
+            className="w-full py-2.5 bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-amber-400" /> Download .ics iCal File
           </button>
         </div>
 
-        {/* Card 2: Administrative CSV Summary Export */}
-        <div className="export-card">
-          <div className="card-icon-header green">
-            <FileSpreadsheet className="icon-lg" />
+        {/* CSV Summary Export */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="p-3 bg-amber-50 rounded-xl text-amber-700 w-fit mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Administrative CSV Summary</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Download a comprehensive CSV spreadsheet containing all class sessions, teacher assignments, and classroom bookings for payroll and archiving.
+            </p>
           </div>
-          <h3>Payroll & Admin CSV Archiving</h3>
-          <p>Download a clean CSV spreadsheet report of all teacher assignments, total teaching hours, and building locations for payroll auditing and archives.</p>
 
-          <div className="csv-preview-info">
-            <span>Total Educators Included: <strong>{teachers.length}</strong></span>
-            <span>Total Timetable Slots: <strong>{masterSchedule.length}</strong></span>
-          </div>
-
-          <button onClick={exportCSVSummary} className="btn-secondary w-full">
-            <FileSpreadsheet className="icon-sm" /> Download Faculty CSV Summary
+          <button
+            onClick={generateCSV}
+            className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-blue-950 font-extrabold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> Download CSV Summary
           </button>
         </div>
       </div>

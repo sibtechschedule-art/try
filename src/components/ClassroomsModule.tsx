@@ -1,202 +1,143 @@
 import React, { useState } from 'react';
 import { useSchedule } from '../context/ScheduleContext';
-import type { Classroom } from '../types';
-import { School, Plus, Trash2, Edit3, Save, X, Users, Clock, MapPin } from 'lucide-react';
+import { DoorClosed, Plus, Edit2, Trash2, Check, X, ShieldCheck } from 'lucide-react';
 
 export const ClassroomsModule: React.FC = () => {
-  const { classrooms, addClassroom, updateClassroom, deleteClassroom } = useSchedule();
-
-  const [isAdding, setIsAdding] = useState(false);
+  const { classrooms, scheduleSlots, addClassroom, updateClassroom, deleteClassroom } = useSchedule();
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  // Form State
   const [roomNumber, setRoomNumber] = useState('');
-  const [name, setName] = useState('');
-  const [capacity, setCapacity] = useState(30);
-  const [building, setBuilding] = useState('Science Wing - Bldg A');
-  const [availableFrom, setAvailableFrom] = useState('08:00');
-  const [availableTo, setAvailableTo] = useState('16:00');
 
   const resetForm = () => {
     setRoomNumber('');
-    setName('');
-    setCapacity(30);
-    setBuilding('Science Wing - Bldg A');
-    setAvailableFrom('08:00');
-    setAvailableTo('16:00');
-    setIsAdding(false);
     setEditingId(null);
   };
 
-  const handleStartEdit = (c: Classroom) => {
-    setEditingId(c.id);
-    setRoomNumber(c.roomNumber);
-    setName(c.name);
-    setCapacity(c.capacity);
-    setBuilding(c.building);
-    setAvailableFrom(c.availableFrom);
-    setAvailableTo(c.availableTo);
-    setIsAdding(false);
+  const handleEdit = (room: typeof classrooms[0]) => {
+    setEditingId(room.id);
+    setRoomNumber(room.roomNumber);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomNumber.trim() || !name.trim()) return;
+    if (!roomNumber.trim()) return;
 
     if (editingId) {
-      updateClassroom({
-        id: editingId,
-        roomNumber,
-        name,
-        capacity,
-        building,
-        availableFrom,
-        availableTo
-      });
+      updateClassroom(editingId, { roomNumber });
     } else {
-      addClassroom({
-        roomNumber,
-        name,
-        capacity,
-        building,
-        availableFrom,
-        availableTo
-      });
+      addClassroom({ roomNumber });
     }
     resetForm();
   };
 
+  // Check how many active schedule sessions are in each room
+  const getRoomUsageCount = (classroomId: string) => {
+    return scheduleSlots.filter(s => s.classroomId === classroomId).length;
+  };
+
   return (
-    <div className="module-container">
-      <div className="module-header">
-        <div>
-          <h2><School className="icon" /> Classrooms & Labs Module</h2>
-          <p>Configure room names, numbers, seat capacities, building wings, and operational availability windows.</p>
-        </div>
-        {!isAdding && !editingId && (
-          <button className="btn-primary" onClick={() => setIsAdding(true)}>
-            <Plus className="icon-sm" /> Add New Classroom
-          </button>
-        )}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-blue-950 flex items-center gap-2">
+          <DoorClosed className="w-7 h-7 text-blue-900" />
+          Classrooms & Rooms Directory
+        </h1>
+        <p className="text-slate-600 text-sm mt-1">
+          Streamlined classroom management keeping active Room Numbers & IDs for automated locking during scheduled sessions.
+        </p>
       </div>
 
-      {/* Add / Edit Form Panel */}
-      {(isAdding || editingId) && (
-        <form className="crud-form-panel" onSubmit={handleSave}>
-          <h3>{editingId ? 'Edit Classroom Details' : 'Add New Classroom'}</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form Card */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-md h-fit">
+          <h2 className="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2">
+            {editingId ? <Edit2 className="w-5 h-5 text-blue-900" /> : <Plus className="w-5 h-5 text-amber-500" />}
+            {editingId ? 'Edit Room Identifier' : 'Add New Classroom'}
+          </h2>
 
-          <div className="form-grid-3">
-            <div className="form-group">
-              <label>Room Number / ID</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Room Number / ID</label>
               <input
                 type="text"
                 required
+                placeholder="e.g. Room 101, Lab 201, Aud 301"
                 value={roomNumber}
                 onChange={e => setRoomNumber(e.target.value)}
-                placeholder="e.g. Room 101"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-900 text-sm"
               />
             </div>
 
-            <div className="form-group">
-              <label>Classroom Name / Description</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="e.g. Physics & Robotics Lab"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Building / Campus Location</label>
-              <input
-                type="text"
-                required
-                value={building}
-                onChange={e => setBuilding(e.target.value)}
-                placeholder="e.g. Science Wing - Bldg A"
-              />
-            </div>
-          </div>
-
-          <div className="form-grid-3">
-            <div className="form-group">
-              <label>Seat Capacity (Students)</label>
-              <input
-                type="number"
-                min="10"
-                max="200"
-                value={capacity}
-                onChange={e => setCapacity(parseInt(e.target.value) || 30)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Operational Hours From</label>
-              <input
-                type="time"
-                value={availableFrom}
-                onChange={e => setAvailableFrom(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Operational Hours To</label>
-              <input
-                type="time"
-                value={availableTo}
-                onChange={e => setAvailableTo(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="form-actions-row">
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              <X className="icon-sm" /> Cancel
-            </button>
-            <button type="submit" className="btn-primary">
-              <Save className="icon-sm" /> {editingId ? 'Save Changes' : 'Create Room'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Classrooms Grid List */}
-      <div className="classrooms-grid">
-        {classrooms.map(room => (
-          <div key={room.id} className="classroom-card">
-            <div className="room-card-header">
-              <div className="room-title">
-                <span className="room-badge">{room.roomNumber}</span>
-                <h3>{room.name}</h3>
-              </div>
-              <div className="card-top-actions">
-                <button className="btn-icon" onClick={() => handleStartEdit(room)} title="Edit">
-                  <Edit3 className="icon-xs" />
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-sm"
+              >
+                {editingId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {editingId ? 'Save Room' : 'Add Room'}
+              </button>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-lg text-sm flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
                 </button>
-                <button className="btn-icon danger" onClick={() => deleteClassroom(room.id)} title="Delete">
-                  <Trash2 className="icon-xs" />
-                </button>
-              </div>
+              )}
             </div>
+          </form>
+        </div>
 
-            <div className="room-details-list">
-              <div className="detail-item">
-                <MapPin className="icon-xs text-muted" />
-                <span><strong>Building:</strong> {room.building}</span>
+        {/* Classrooms List Grid */}
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 h-fit">
+          {classrooms.map(room => {
+            const usageCount = getRoomUsageCount(room.id);
+            return (
+              <div
+                key={room.id}
+                className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-900/40 transition shadow-md flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="px-3 py-1 rounded-md text-sm font-bold bg-blue-50 text-blue-900 border border-blue-200">
+                      {room.roomNumber}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> Auto-Locking Active
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p>Total Scheduled Sessions: <strong className="text-slate-900">{usageCount} sessions</strong></p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end items-center gap-2 pt-4 mt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => handleEdit(room)}
+                    className="p-1.5 text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
+                    title="Edit Classroom"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteClassroom(room.id)}
+                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    title="Delete Classroom"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="detail-item">
-                <Users className="icon-xs text-muted" />
-                <span><strong>Capacity:</strong> {room.capacity} Students</span>
-              </div>
-              <div className="detail-item">
-                <Clock className="icon-xs text-muted" />
-                <span><strong>Available:</strong> {room.availableFrom} - {room.availableTo}</span>
-              </div>
+            );
+          })}
+
+          {classrooms.length === 0 && (
+            <div className="col-span-2 bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-500">
+              No classrooms defined yet. Add your first room using the form.
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     </div>
   );

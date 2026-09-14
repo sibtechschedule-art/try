@@ -1,61 +1,59 @@
 export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 
+export type CollegeYearLevel = '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
+
+export interface DayTimeRange {
+  enabled: boolean;
+  startTime: string; // e.g. "07:00"
+  endTime: string;   // e.g. "18:00"
+}
+
 export interface SchoolSettings {
-  operatingStartTime: string; // e.g. "07:00"
-  operatingEndTime: string;   // e.g. "17:00"
+  dailyOperatingHours: Record<DayOfWeek, DayTimeRange>;
   periodDurationMinutes: number; // e.g. 60
   days: DayOfWeek[];
-  lunchBreakStart?: string; // e.g. "12:00"
-  lunchBreakEnd?: string;   // e.g. "13:00"
 }
 
 export interface Subject {
   id: string;
   name: string;
   code: string;
-  gradeLevel: string; // e.g. "Grade 9", "Grade 10"
-  weeklyFrequency: number; // number of periods required per week
+  yearLevel: CollegeYearLevel;
+  weeklyFrequency: number; // e.g. 3 sessions per week
+  sessionDurationHours: number; // e.g. 1.0, 1.5, 2.0 hours per session
   color: string;
 }
 
 export interface Teacher {
   id: string;
   name: string;
-  email: string;
   qualifiedSubjectIds: string[];
-  maxWeeklyHours: number; // e.g. 20 hours/periods per week limit
-  buildingLocation: string; // e.g. "Building A"
-  blockedDays: DayOfWeek[];
-  availableTimeSlots: string[]; // e.g. ["08:00-09:00", "09:00-10:00", ...]
+  maxWeeklyHours: number; // e.g. 20 hours/week max limit
+  dailyAvailability: Record<DayOfWeek, DayTimeRange>;
   avatarUrl?: string;
 }
 
 export interface Classroom {
   id: string;
-  roomNumber: string;
-  name: string;
-  capacity: number;
-  building: string; // e.g. "Building A", "Building B"
-  availableFrom: string; // "07:00"
-  availableTo: string;   // "17:00"
+  roomNumber: string; // Streamlined: Room Number / ID only
 }
 
 export interface ScheduleSlot {
   id: string;
   day: DayOfWeek;
   startTime: string; // "08:00"
-  endTime: string;   // "09:00"
-  periodIndex: number;
+  endTime: string;   // "10:00"
   subjectId: string;
   teacherId: string;
   substituteTeacherId?: string;
-  classroomId: string;
-  gradeLevel: string; // "Grade 9"
-  sectionCode: string; // "9-A"
+  classroomId: string; // Locked room ID while session active
+  yearLevel: CollegeYearLevel;
+  sectionCode: string; // e.g. "BSCS 1-A"
   isSubstituted?: boolean;
   originalTeacherId?: string;
   hasConflict?: boolean;
   conflictReason?: string;
+  isRoomLocked?: boolean;
 }
 
 export interface SubstitutionRecord {
@@ -70,7 +68,7 @@ export interface SubstitutionRecord {
 
 export interface ConflictBottleneck {
   id: string;
-  type: 'teacher_double_booked' | 'room_double_booked' | 'heavy_workload' | 'distant_building' | 'unavailable_teacher';
+  type: 'teacher_double_booked' | 'room_double_booked' | 'heavy_workload' | 'unavailable_teacher';
   severity: 'high' | 'medium' | 'low';
   title: string;
   description: string;
@@ -88,6 +86,14 @@ export interface ConflictBottleneck {
 
 export interface StudentViewData {
   sectionCode: string;
-  gradeLevel: string;
+  yearLevel: CollegeYearLevel;
+  slots: ScheduleSlot[];
+}
+
+export interface ArchivedSchedule {
+  id: string;
+  name: string;
+  weekLabel: string; // e.g. "Week 1 (Aug 14 - Aug 18)"
+  createdAt: string;
   slots: ScheduleSlot[];
 }

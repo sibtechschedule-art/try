@@ -1,218 +1,318 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSchedule } from '../context/ScheduleContext';
+import type { DayOfWeek } from '../types';
 import {
+  Sparkles,
   Users,
-  School,
+  DoorClosed,
   BookOpen,
   Calendar,
-  Wand2,
-  PlusCircle,
-  AlertTriangle,
   Clock,
   ArrowRight,
-  UserCheck
+  RefreshCw,
+  AlertTriangle,
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+interface DashboardProps {
+  onNavigate: (tab: string) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const {
     teachers,
     classrooms,
     subjects,
-    masterSchedule,
+    scheduleSlots,
+    settings,
+    updateDailyOperatingHours,
+    generateSchedule,
     bottlenecks,
-    substitutions,
-    setActiveTab,
-    handleGenerateSchedule
   } = useSchedule();
 
-  // Quick stats
-  const totalTeachers = teachers.length;
-  const totalClassrooms = classrooms.length;
-  const totalSubjects = subjects.length;
-  const totalScheduledSlots = masterSchedule.length;
-  const totalConflicts = bottlenecks.length;
-  const activeSubstitutionsCount = substitutions.filter(s => s.status === 'active').length;
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Today's schedule preview (e.g., Monday)
-  const todaySlots = masterSchedule.filter(s => s.day === 'Monday').slice(0, 6);
+  const handleOperatingHoursChange = (
+    day: DayOfWeek,
+    field: 'enabled' | 'startTime' | 'endTime',
+    value: any
+  ) => {
+    const currentDayConfig = settings.dailyOperatingHours[day] || {
+      enabled: true,
+      startTime: '07:00',
+      endTime: '18:00',
+    };
+
+    updateDailyOperatingHours(day, {
+      ...currentDayConfig,
+      [field]: value,
+    });
+
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
+  };
 
   return (
-    <div className="dashboard-container">
-      {/* Hero Welcome & Quick Action Header */}
-      <div className="dashboard-hero">
-        <div className="hero-text">
-          <h2>Automated School Master Schedule Dashboard</h2>
-          <p>
-            Real-time timetable allocation engine, dynamic constraint resolution, emergency substitution, and AI conflict optimization.
-          </p>
-        </div>
-        <div className="hero-actions">
-          <button onClick={handleGenerateSchedule} className="btn-primary-sparkle">
-            <Wand2 className="icon" /> Generate Master Schedule
-          </button>
-        </div>
-      </div>
+    <div className="space-y-8">
+      {/* SIBTECH Master Hero Header */}
+      <div className="bg-gradient-to-r from-blue-900 via-blue-950 to-blue-900 border border-amber-500/40 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Statistics Cards */}
-      <div className="stats-grid">
-        <div className="stat-card" onClick={() => setActiveTab('teachers')}>
-          <div className="stat-icon-wrapper blue">
-            <Users className="stat-icon" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              SIBTECH Database-Backed Engine
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-snug">
+              SIBTECH Central Operations & Schedule Dashboard
+            </h1>
+            <p className="text-blue-100 text-sm md:text-base leading-relaxed">
+              Southwestern Institute of Business & Technology scheduling system. Generate conflict-free college master schedules, manage day-specific faculty availability, and lock room allocations automatically.
+            </p>
           </div>
-          <div className="stat-info">
-            <span className="stat-label">Active Teachers</span>
-            <span className="stat-value">{totalTeachers}</span>
-            <span className="stat-subtext">Educators configured</span>
-          </div>
-        </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('classrooms')}>
-          <div className="stat-icon-wrapper green">
-            <School className="stat-icon" />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Registered Classrooms</span>
-            <span className="stat-value">{totalClassrooms}</span>
-            <span className="stat-subtext">Labs & Lecture Rooms</span>
-          </div>
-        </div>
-
-        <div className="stat-card" onClick={() => setActiveTab('subjects')}>
-          <div className="stat-icon-wrapper amber">
-            <BookOpen className="stat-icon" />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Curriculum Subjects</span>
-            <span className="stat-value">{totalSubjects}</span>
-            <span className="stat-subtext">Required courses</span>
-          </div>
-        </div>
-
-        <div className="stat-card" onClick={() => setActiveTab('schedule')}>
-          <div className="stat-icon-wrapper purple">
-            <Calendar className="stat-icon" />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Scheduled Slots</span>
-            <span className="stat-value">{totalScheduledSlots}</span>
-            <span className="stat-subtext">Weekly class periods</span>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              onClick={generateSchedule}
+              className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-blue-950 font-extrabold text-sm shadow-lg shadow-amber-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Generate Master Schedule
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Alert Banner if Bottlenecks exist */}
-      {totalConflicts > 0 && (
-        <div className="alert-banner" onClick={() => setActiveTab('assistant')}>
-          <div className="alert-content">
-            <AlertTriangle className="alert-icon text-amber" />
+      {/* AI Bottlenecks Alert Banner */}
+      {bottlenecks.length > 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-200/60 rounded-lg text-amber-800 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
             <div>
-              <strong>AI Conflict Assistant Flagged {totalConflicts} Bottleneck(s)!</strong>
-              <p>Click here to review distant building switches or back-to-back workload warnings.</p>
+              <h4 className="text-sm font-bold text-amber-900">
+                {bottlenecks.length} Timetable Bottleneck{bottlenecks.length > 1 ? 's' : ''} Detected
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Potential double bookings or heavy workload peaks flagged by AI Assistant.
+              </p>
             </div>
           </div>
-          <button className="btn-alert-action">
-            Review Bottlenecks <ArrowRight className="icon-sm" />
+          <button
+            onClick={() => onNavigate('ai_assistant')}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-blue-950 font-bold text-xs rounded-lg transition shrink-0 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            Review Bottlenecks <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Quick Action Navigation Cards & Master Schedule Overview */}
-      <div className="dashboard-grid-layout">
-        {/* Left Column: Quick Action Cards */}
-        <div className="card-panel">
-          <h3>⚡ Quick Data Input & Generator Shortcuts</h3>
-          <p className="panel-desc">Jump straight into setup or emergency management:</p>
-
-          <div className="quick-actions-list">
-            <button className="quick-action-btn" onClick={() => setActiveTab('subjects')}>
-              <div className="qa-icon-box blue"><PlusCircle className="icon" /></div>
-              <div className="qa-text">
-                <strong>Add / Manage Subjects</strong>
-                <span>Set required weekly frequency and grade levels</span>
-              </div>
-              <ArrowRight className="qa-arrow" />
-            </button>
-
-            <button className="quick-action-btn" onClick={() => setActiveTab('teachers')}>
-              <div className="qa-icon-box green"><Users className="icon" /></div>
-              <div className="qa-text">
-                <strong>Manage Teacher Profiles</strong>
-                <span>Assign subjects, weekly limits & daily availability</span>
-              </div>
-              <ArrowRight className="qa-arrow" />
-            </button>
-
-            <button className="quick-action-btn" onClick={() => setActiveTab('classrooms')}>
-              <div className="qa-icon-box purple"><School className="icon" /></div>
-              <div className="qa-text">
-                <strong>Manage Classrooms</strong>
-                <span>Configure room capacities & operational hours</span>
-              </div>
-              <ArrowRight className="qa-arrow" />
-            </button>
-
-            <button className="quick-action-btn" onClick={() => setActiveTab('substitute')}>
-              <div className="qa-icon-box red"><UserCheck className="icon" /></div>
-              <div className="qa-text">
-                <strong>Emergency Substitution Pool</strong>
-                <span>Drag-and-drop replacement teachers ({activeSubstitutionsCount} active)</span>
-              </div>
-              <ArrowRight className="qa-arrow" />
-            </button>
+      {/* Quick Statistics Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div
+          onClick={() => onNavigate('teachers')}
+          className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-600">Total Faculty</span>
+            <div className="p-2.5 bg-blue-50 rounded-lg text-blue-900 group-hover:scale-110 transition">
+              <Users className="w-5 h-5" />
+            </div>
           </div>
+          <div className="text-2xl font-black text-slate-900">{teachers.length}</div>
+          <p className="text-xs text-slate-500 mt-1">Active Instructors</p>
         </div>
 
-        {/* Right Column: Visual Overview of Today's Master Schedule */}
-        <div className="card-panel">
-          <div className="panel-header-row">
-            <h3><Calendar className="icon" /> Today's Generated Master Schedule (Monday)</h3>
-            <button className="btn-link" onClick={() => setActiveTab('schedule')}>
-              View Full Matrix <ArrowRight className="icon-sm" />
-            </button>
+        <div
+          onClick={() => onNavigate('classrooms')}
+          className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-600">Active Rooms</span>
+            <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-700 group-hover:scale-110 transition">
+              <DoorClosed className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{classrooms.length}</div>
+          <p className="text-xs text-slate-500 mt-1">Auto-Locking Rooms</p>
+        </div>
+
+        <div
+          onClick={() => onNavigate('subjects')}
+          className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-600">Course Catalog</span>
+            <div className="p-2.5 bg-amber-50 rounded-lg text-amber-700 group-hover:scale-110 transition">
+              <BookOpen className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{subjects.length}</div>
+          <p className="text-xs text-slate-500 mt-1">College Subjects</p>
+        </div>
+
+        <div
+          onClick={() => onNavigate('schedule')}
+          className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-600">Scheduled Sessions</span>
+            <div className="p-2.5 bg-indigo-50 rounded-lg text-indigo-700 group-hover:scale-110 transition">
+              <Calendar className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{scheduleSlots.length}</div>
+          <p className="text-xs text-slate-500 mt-1">Master Timetable Slots</p>
+        </div>
+      </div>
+
+      {/* School Operating Hours Configurator Section */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-blue-950 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-900" />
+              School Operating Hours Configurator
+            </h2>
+            <p className="text-slate-600 text-xs mt-0.5">
+              Define daily operating time pools (e.g., Mon-Fri 7:00 AM – 9:00 PM). Global master availability for all SIBTECH classrooms.
+            </p>
           </div>
 
-          <div className="schedule-preview-list">
-            {todaySlots.length === 0 ? (
-              <div className="empty-preview">
-                <Clock className="empty-icon" />
-                <p>No slots generated for today yet.</p>
-                <button onClick={handleGenerateSchedule} className="btn-secondary">
-                  Generate Schedule Now
-                </button>
-              </div>
-            ) : (
-              todaySlots.map(slot => {
-                const sub = subjects.find(s => s.id === slot.subjectId);
-                const teacher = teachers.find(t => t.id === (slot.substituteTeacherId || slot.teacherId));
-                const room = classrooms.find(r => r.id === slot.classroomId);
+          {savedSuccess && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Operating Hours Updated
+            </span>
+          )}
+        </div>
 
-                return (
-                  <div key={slot.id} className="preview-slot-card">
-                    <div className="slot-time-badge">
-                      <Clock className="icon-xs" />
-                      <span>{slot.startTime} - {slot.endTime}</span>
-                    </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {DAYS_OF_WEEK.map(day => {
+            const dayConfig = settings.dailyOperatingHours[day] || {
+              enabled: true,
+              startTime: '07:00',
+              endTime: '21:00',
+            };
 
-                    <div className="slot-main-info">
-                      <h4 style={{ color: sub?.color || '#3b82f6' }}>{sub?.name || 'Subject'}</h4>
-                      <p className="slot-meta">
-                        <span>{slot.gradeLevel} ({slot.sectionCode})</span> • <span>{room?.name}</span>
-                      </p>
-                    </div>
+            return (
+              <div
+                key={day}
+                className={`p-4 rounded-xl border transition ${
+                  dayConfig.enabled
+                    ? 'bg-slate-50 border-slate-300'
+                    : 'bg-slate-100 border-slate-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dayConfig.enabled}
+                      onChange={e => handleOperatingHoursChange(day, 'enabled', e.target.checked)}
+                      className="rounded border-slate-300 text-blue-900 focus:ring-blue-900"
+                    />
+                    <span className="text-sm font-bold text-blue-950">{day}</span>
+                  </label>
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-900" />
+                </div>
 
-                    <div className="slot-teacher-pill">
-                      <img
-                        src={teacher?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                        alt={teacher?.name}
-                        className="teacher-avatar-xs"
+                {dayConfig.enabled ? (
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Opening Time</span>
+                      <input
+                        type="time"
+                        value={dayConfig.startTime}
+                        onChange={e => handleOperatingHoursChange(day, 'startTime', e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 text-xs font-mono"
                       />
-                      <span>{teacher?.name}</span>
-                      {slot.isSubstituted && <span className="sub-badge">SUB</span>}
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Closing Time</span>
+                      <input
+                        type="time"
+                        value={dayConfig.endTime}
+                        onChange={e => handleOperatingHoursChange(day, 'endTime', e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 text-xs font-mono"
+                      />
                     </div>
                   </div>
-                );
-              })
-            )}
+                ) : (
+                  <div className="text-xs text-slate-400 italic py-4 text-center">
+                    Campus Closed
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Quick Action Navigation Cards */}
+      <div>
+        <h3 className="text-base font-bold text-blue-950 mb-4">Quick Navigation Modules</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div
+            onClick={() => onNavigate('schedule')}
+            className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-blue-50 rounded-lg text-blue-900">
+                  <Calendar className="w-5 h-5" />
+                </span>
+                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-900 group-hover:translate-x-1 transition" />
+              </div>
+              <h4 className="text-base font-bold text-slate-900 mb-1">Master Schedule Grid</h4>
+              <p className="text-xs text-slate-600">
+                View matrix timetable, edit blocks manually, jumble room assignments, and print clean paper formats.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-blue-900 mt-4 inline-block">Open Timetable Grid →</span>
+          </div>
+
+          <div
+            onClick={() => onNavigate('substitutions')}
+            className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-amber-50 rounded-lg text-amber-700">
+                  <Users className="w-5 h-5" />
+                </span>
+                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-amber-700 group-hover:translate-x-1 transition" />
+              </div>
+              <h4 className="text-base font-bold text-slate-900 mb-1">Emergency Substitution Pool</h4>
+              <p className="text-xs text-slate-600">
+                Drag and drop available substitute teachers onto scheduled slots with real-time conflict protection.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-amber-700 mt-4 inline-block">Manage Substitutions →</span>
+          </div>
+
+          <div
+            onClick={() => onNavigate('export_hub')}
+            className="bg-white border border-slate-200 hover:border-blue-900/40 rounded-xl p-5 cursor-pointer transition shadow-md flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-indigo-50 rounded-lg text-indigo-700">
+                  <Sparkles className="w-5 h-5" />
+                </span>
+                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-700 group-hover:translate-x-1 transition" />
+              </div>
+              <h4 className="text-base font-bold text-slate-900 mb-1">Export & Integration Hub</h4>
+              <p className="text-xs text-slate-600">
+                Export faculty schedules directly to Google Calendar (.ics) or download administrative CSV summaries.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-indigo-700 mt-4 inline-block">Export Calendar / CSV →</span>
           </div>
         </div>
       </div>

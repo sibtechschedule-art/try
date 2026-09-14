@@ -1,17 +1,25 @@
 import React, { useState } from 'react';
 import { useSchedule } from '../context/ScheduleContext';
-import type { DayOfWeek, Teacher } from '../types';
-import { UserCheck, AlertOctagon, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { isTeacherAvailable, isTeacherBookedAtTime } from '../services/scheduleGenerator';
+import type { ScheduleSlot, DayOfWeek } from '../types';
+import {
+  UserCheck,
+  ShieldAlert,
+  ArrowRight,
+  Clock,
+  X
+} from 'lucide-react';
+
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export const SubstitutionDrawer: React.FC = () => {
   const {
-    settings,
+    scheduleSlots,
     teachers,
     subjects,
     classrooms,
-    masterSchedule,
-    applySubstitution,
-    checkTeacherConflict
+    assignSubstitute,
+    removeSubstitute,
   } = useSchedule();
 
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>('Monday');
@@ -19,18 +27,18 @@ export const SubstitutionDrawer: React.FC = () => {
   const [dragOverSlotId, setDragOverSlotId] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
-  // Active slots for selected day
-  const activeDaySlots = masterSchedule.filter(s => s.day === selectedDay);
+  const activeDaySlots = scheduleSlots.filter(s => s.day === selectedDay);
 
-  const handleDragStart = (e: React.DragEvent, teacher: Teacher) => {
-    setDraggedTeacherId(teacher.id);
-    e.dataTransfer.setData('text/plain', teacher.id);
-    e.dataTransfer.effectAllowed = 'copy';
+  // Qualified substitute pool
+  const availableSubstitutes = teachers;
+
+  const handleDragStart = (e: React.DragEvent, teacherId: string) => {
+    e.dataTransfer.setData('text/plain', teacherId);
+    setDraggedTeacherId(teacherId);
   };
 
   const handleDragOver = (e: React.DragEvent, slotId: string) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
     setDragOverSlotId(slotId);
   };
 
@@ -38,171 +46,207 @@ export const SubstitutionDrawer: React.FC = () => {
     setDragOverSlotId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, slotId: string) => {
+  const handleDrop = (e: React.DragEvent, targetSlot: ScheduleSlot) => {
     e.preventDefault();
     const teacherId = e.dataTransfer.getData('text/plain') || draggedTeacherId;
+    setDragOverSlotId(null);
+    setDraggedTeacherId(null);
 
     if (!teacherId) return;
 
-    const targetSlot = masterSchedule.find(s => s.id === slotId);
-    if (!targetSlot) return;
+    const teacher = teachers.find(t => t.id === teacherId);
+    if (!teacher) return;
 
-    // Smart Conflict Prevention Shield: check if teacher is already booked
-    const hasConflict = checkTeacherConflict(teacherId, targetSlot.day, targetSlot.startTime, slotId);
+    // Check Smart Conflict Prevention Shield
+    const isAvailable = isTeacherAvailable(teacher, targetSlot.day, targetSlot.startTime, targetSlot.endTime);
+    const isBooked = isTeacherBookedAtTime(teacherId, targetSlot.day, targetSlot.startTime, targetSlot.endTime, scheduleSlots, targetSlot.id);
 
-    if (hasConflict) {
-      const teacherName = teachers.find(t => t.id === teacherId)?.name || 'Teacher';
+    if (isBooked) {
       setConflictWarning(
-        `🚨 Smart Conflict Prevention Shield: ${teacherName} is already booked in another classroom on ${targetSlot.day} at ${targetSlot.startTime}!`
+        `CONFLICT SHIELD ALERT: ${teacher.name} is already booked in another classroom at ${targetSlot.startTime} on ${targetSlot.day}!`
+      );
+      setTimeout(() => setConflictWarning(null), 5000);
+      return;
+    }
+
+    if (!isAvailable) {
+      setConflictWarning(
+        `AVAILABILITY WARNING: ${teacher.name} has not enabled availability for ${targetSlot.day} ${targetSlot.startTime}-${targetSlot.endTime}.`
       );
       setTimeout(() => setConflictWarning(null), 5000);
     }
 
-    // Apply substitution regardless or after warning
-    applySubstitution(slotId, teacherId, 'Emergency absence assignment');
-
-    setDraggedTeacherId(null);
-    setDragOverSlotId(null);
+    assignSubstitute(targetSlot.id, teacherId, 'Emergency Substitute Assignment');
   };
 
   return (
-    <div className="substitute-container">
-      <div className="substitute-header">
-        <div>
-          <h2><UserCheck className="icon" /> Emergency Teacher Substitution Pool</h2>
-          <p>Drag available substitute teachers from the pool and drop them onto active schedule slots for instant replacement.</p>
-        </div>
-
-        {/* Day Selector */}
-        <div className="day-selector-bar">
-          {settings.days.map(day => (
-            <button
-              key={day}
-              className={`day-tab-btn ${selectedDay === day ? 'active' : ''}`}
-              onClick={() => setSelectedDay(day)}
-            >
-              {day}
-            </button>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-blue-950 flex items-center gap-2">
+          <UserCheck className="w-7 h-7 text-blue-900" />
+          Emergency Substitute Pool & Drag-and-Drop
+        </h1>
+        <p className="text-slate-600 text-sm mt-1">
+          Grab qualified substitute teachers from the pool and drop them onto active schedule slots with real-time conflict validation warnings.
+        </p>
       </div>
 
-      {/* Conflict Prevention Shield Warning Toast */}
       {conflictWarning && (
-        <div className="toast-danger">
-          <ShieldAlert className="icon-sm" />
+        <div className="bg-rose-100 border border-rose-400 rounded-xl p-4 flex items-center gap-3 text-rose-900 text-xs font-bold shadow-md animate-bounce">
+          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
           <span>{conflictWarning}</span>
         </div>
       )}
 
-      <div className="substitute-workspace-grid">
-        {/* Left Drawer: Substitute Teacher Drag Pool */}
-        <div className="teacher-pool-drawer">
-          <div className="drawer-header">
-            <h3><UserCheck className="icon-sm" /> Available Substitutes Pool</h3>
-            <span className="badge-pill blue">{teachers.length} Teachers</span>
-          </div>
-          <p className="drawer-subtext">Grab a teacher card below and drop onto a slot on the right:</p>
+      {/* Day Selector */}
+      <div className="flex items-center gap-2">
+        {DAYS_OF_WEEK.map(day => (
+          <button
+            key={day}
+            onClick={() => setSelectedDay(day)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              selectedDay === day
+                ? 'bg-blue-900 text-white shadow-md'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            {day}
+          </button>
+        ))}
+      </div>
 
-          <div className="pool-list">
-            {teachers.map(teacher => {
-              return (
-                <div
-                  key={teacher.id}
-                  draggable
-                  onDragStart={e => handleDragStart(e, teacher)}
-                  className={`pool-teacher-card ${draggedTeacherId === teacher.id ? 'dragging' : ''}`}
-                >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Substitute Pool Sidebar */}
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-md h-fit space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h3 className="text-sm font-bold text-blue-950 flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              Available Faculty Pool ({availableSubstitutes.length})
+            </h3>
+            <span className="text-[10px] text-slate-500 font-mono">Drag Card</span>
+          </div>
+
+          <p className="text-xs text-slate-600">
+            Click and drag any faculty card onto an active class slot on the right to assign them as a substitute.
+          </p>
+
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {availableSubstitutes.map(t => (
+              <div
+                key={t.id}
+                draggable
+                onDragStart={e => handleDragStart(e, t.id)}
+                className="bg-slate-50 border border-slate-200 hover:border-blue-900/60 rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition shadow-sm group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
                   <img
-                    src={teacher.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                    alt={teacher.name}
-                    className="avatar-md"
+                    src={t.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150'}
+                    alt={t.name}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-400"
                   />
-                  <div className="pool-info">
-                    <h4>{teacher.name}</h4>
-                    <span className="location-tag">📍 {teacher.buildingLocation}</span>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-900 transition">{t.name}</h4>
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-slate-400" /> Max {t.maxWeeklyHours} hrs/week
+                    </p>
                   </div>
-                  <div className="drag-handle-icon" title="Drag to Substitute">⋮⋮</div>
                 </div>
-              );
-            })}
+
+                <div className="text-slate-400 group-hover:text-blue-900 transition">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Right Panel: Interactive Active Timetable Drag Target Slots */}
-        <div className="timetable-drop-panel">
-          <h3><AlertOctagon className="icon-sm" /> Active Schedule Slots for {selectedDay}</h3>
-          <p className="panel-desc">Hover over any period slot with a teacher card to replace the instructor:</p>
+        {/* Target Schedule Slots Drop Zone */}
+        <div className="lg:col-span-8 space-y-3">
+          <h3 className="text-sm font-bold text-blue-950 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-900" />
+            Active Scheduled Class Slots for {selectedDay}
+          </h3>
 
-          <div className="drop-slots-list">
-            {activeDaySlots.length === 0 ? (
-              <div className="empty-preview">No active slots for {selectedDay}.</div>
-            ) : (
-              activeDaySlots.map(slot => {
-                const sub = subjects.find(s => s.id === slot.subjectId);
-                const originalTeacher = teachers.find(t => t.id === (slot.originalTeacherId || slot.teacherId));
-                const activeTeacher = teachers.find(t => t.id === (slot.substituteTeacherId || slot.teacherId));
-                const room = classrooms.find(r => r.id === slot.classroomId);
+          <div className="space-y-3">
+            {activeDaySlots.map(slot => {
+              const subject = subjects.find(s => s.id === slot.subjectId);
+              const room = classrooms.find(r => r.id === slot.classroomId);
+              const originalTeacher = teachers.find(t => t.id === slot.teacherId);
+              const activeTeacher = teachers.find(
+                t => t.id === (slot.substituteTeacherId || slot.teacherId)
+              );
 
-                const isHovered = dragOverSlotId === slot.id;
+              const isDragTarget = dragOverSlotId === slot.id;
 
-                // Smart Conflict Prevention Check for visual warning badge during hover
-                let willConflict = false;
-                if (isHovered && draggedTeacherId) {
-                  willConflict = checkTeacherConflict(draggedTeacherId, slot.day, slot.startTime, slot.id);
-                }
-
-                return (
-                  <div
-                    key={slot.id}
-                    onDragOver={e => handleDragOver(e, slot.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={e => handleDrop(e, slot.id)}
-                    className={`drop-slot-card ${isHovered ? 'drag-over' : ''} ${willConflict ? 'conflict-hover' : ''}`}
-                  >
-                    <div className="slot-left-col">
-                      <div className="slot-period-tag">Period {slot.periodIndex}</div>
-                      <div className="slot-time-str">{slot.startTime} - {slot.endTime}</div>
-                    </div>
-
-                    <div className="slot-mid-col">
-                      <h4 style={{ color: sub?.color || '#3b82f6' }}>{sub?.name || 'Subject'}</h4>
-                      <div className="slot-meta-tags">
-                        <span className="badge-pill gray">{slot.gradeLevel} ({slot.sectionCode})</span>
-                        <span className="badge-pill gray">🏛️ {room?.name}</span>
+              return (
+                <div
+                  key={slot.id}
+                  onDragOver={e => handleDragOver(e, slot.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={e => handleDrop(e, slot)}
+                  className={`p-4 rounded-xl border transition shadow-sm ${
+                    isDragTarget
+                      ? 'bg-blue-50 border-blue-900 border-2 scale-[1.01]'
+                      : slot.isSubstituted
+                      ? 'bg-amber-50 border-amber-400'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="px-2.5 py-1 rounded text-xs font-bold text-white shadow-sm"
+                        style={{ backgroundColor: subject?.color || '#1E3A8A' }}
+                      >
+                        {subject?.code || 'SUB'}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          {subject?.name}
+                          <span className="text-xs text-slate-500 font-mono">({slot.sectionCode})</span>
+                        </h4>
+                        <p className="text-xs text-slate-600 flex items-center gap-3 mt-0.5">
+                          <span>⏱ {slot.startTime} - {slot.endTime}</span>
+                          <span>🚪 {room?.roomNumber}</span>
+                        </p>
                       </div>
                     </div>
 
-                    <div className="slot-right-col">
-                      <div className="current-teacher-box">
-                        <span className="label-sm">Assigned Instructor:</span>
-                        <div className="teacher-badge-pill">
-                          <img
-                            src={activeTeacher?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                            alt={activeTeacher?.name}
-                            className="avatar-xs"
-                          />
-                          <span>{activeTeacher?.name}</span>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-500 block font-semibold">Assigned Instructor</span>
+                        <span className="text-xs font-bold text-slate-900 flex items-center justify-end gap-1">
+                          {slot.isSubstituted && (
+                            <span className="text-[10px] text-amber-600 font-bold">[SUB]</span>
+                          )}
+                          {activeTeacher?.name}
+                        </span>
+                        {slot.isSubstituted && originalTeacher && (
+                          <span className="text-[10px] text-slate-400 block line-through">
+                            Orig: {originalTeacher.name}
+                          </span>
+                        )}
                       </div>
 
                       {slot.isSubstituted && (
-                        <div className="substituted-indicator">
-                          <CheckCircle2 className="icon-xs text-green" />
-                          <span>Replaced ({originalTeacher?.name})</span>
-                        </div>
+                        <button
+                          onClick={() => removeSubstitute(slot.id)}
+                          className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs cursor-pointer"
+                          title="Restore Original Teacher"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
-
-                    {/* Smart Conflict Warning Badge Overlay on Drag Over */}
-                    {willConflict && (
-                      <div className="conflict-badge-overlay">
-                        <ShieldAlert className="icon-xs" /> Conflict: Teacher Already Booked!
-                      </div>
-                    )}
                   </div>
-                );
-              })
+                </div>
+              );
+            })}
+
+            {activeDaySlots.length === 0 && (
+              <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center text-slate-500">
+                No active class sessions scheduled for {selectedDay}.
+              </div>
             )}
           </div>
         </div>
