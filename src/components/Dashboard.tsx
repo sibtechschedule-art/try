@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;

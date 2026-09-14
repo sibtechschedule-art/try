@@ -1,4 +1,4 @@
-export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
 
 export type CollegeYearLevel = '1st Year' | '2nd Year' | '3rd Year' | '4th Year';
 

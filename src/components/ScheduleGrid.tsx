@@ -16,7 +16,7 @@ import {
   History
 } from 'lucide-react';
 
-const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS_OF_WEEK: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const ScheduleGrid: React.FC = () => {
   const {

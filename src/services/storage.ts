@@ -17,9 +17,10 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
     Wednesday: { enabled: true, startTime: '07:00', endTime: '18:00' },
     Thursday: { enabled: true, startTime: '07:00', endTime: '18:00' },
     Friday: { enabled: true, startTime: '07:00', endTime: '18:00' },
+    Saturday: { enabled: true, startTime: '07:00', endTime: '18:00' },
   },
   periodDurationMinutes: 60,
-  days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
 };
 
 export const DEFAULT_SUBJECTS: Subject[] = [
@@ -82,6 +83,7 @@ export const DEFAULT_TEACHERS: Teacher[] = [
       Wednesday: { enabled: true, startTime: '07:00', endTime: '16:00' },
       Thursday: { enabled: true, startTime: '07:00', endTime: '16:00' },
       Friday: { enabled: true, startTime: '07:00', endTime: '12:00' },
+      Saturday: { enabled: true, startTime: '07:00', endTime: '16:00' },
     },
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
   },
@@ -96,6 +98,7 @@ export const DEFAULT_TEACHERS: Teacher[] = [
       Wednesday: { enabled: true, startTime: '08:00', endTime: '17:00' },
       Thursday: { enabled: true, startTime: '08:00', endTime: '17:00' },
       Friday: { enabled: false, startTime: '08:00', endTime: '12:00' },
+      Saturday: { enabled: true, startTime: '08:00', endTime: '17:00' },
     },
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150',
   },
@@ -110,6 +113,7 @@ export const DEFAULT_TEACHERS: Teacher[] = [
       Wednesday: { enabled: true, startTime: '09:00', endTime: '18:00' },
       Thursday: { enabled: true, startTime: '09:00', endTime: '18:00' },
       Friday: { enabled: true, startTime: '09:00', endTime: '18:00' },
+      Saturday: { enabled: true, startTime: '09:00', endTime: '18:00' },
     },
     avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150',
   },
@@ -124,6 +128,7 @@ export const DEFAULT_TEACHERS: Teacher[] = [
       Wednesday: { enabled: true, startTime: '07:00', endTime: '15:00' },
       Thursday: { enabled: true, startTime: '07:00', endTime: '15:00' },
       Friday: { enabled: true, startTime: '07:00', endTime: '15:00' },
+      Saturday: { enabled: true, startTime: '07:00', endTime: '15:00' },
     },
     avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=150',
   },
